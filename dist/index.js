@@ -68,9 +68,12 @@ const gameTypeRoutes_1 = __importDefault(require("./routes/gameTypeRoutes"));
 const bannedCountryRoutes_1 = __importDefault(require("./routes/bannedCountryRoutes"));
 const regionRoutes_1 = __importDefault(require("./routes/regionRoutes"));
 const casinoReviewRoutes_1 = __importDefault(require("./routes/casinoReviewRoutes"));
+const casinoAffiliateLinkRoutes_1 = __importDefault(require("./routes/casinoAffiliateLinkRoutes"));
 const userController_1 = require("./controllers/userController");
 const contactTicketRoutes_1 = __importDefault(require("./routes/contactTicketRoutes"));
 const contactTicketController_1 = require("./controllers/contactTicketController");
+const hasOffersPostbackRoutes_1 = __importDefault(require("./routes/hasOffersPostbackRoutes"));
+const hasOffersConfigRoutes_1 = __importDefault(require("./routes/hasOffersConfigRoutes"));
 app.use('/api/admin/email-campaigns', emailRoutes_1.default);
 app.use('/api/admin/casinos', casinoRoutes_1.default);
 app.use('/api/admin/users', userRoutes_1.default);
@@ -90,8 +93,13 @@ app.use('/api/admin/game-types', gameTypeRoutes_1.default);
 app.use('/api/admin/banned-countries', bannedCountryRoutes_1.default);
 app.use('/api/admin/regions', regionRoutes_1.default);
 app.use('/api/admin/casino-reviews', casinoReviewRoutes_1.default);
+app.use('/api/admin/casino-affiliate-links', casinoAffiliateLinkRoutes_1.default);
+app.use('/api/casino-affiliate-links', casinoAffiliateLinkRoutes_1.default);
 app.use('/api/admin/contact-tickets', contactTicketRoutes_1.default);
 app.use('/api/casino-reviews', casinoReviewRoutes_1.default);
+// HasOffers postback tracking routes
+app.use('/api/hasoffers', hasOffersPostbackRoutes_1.default);
+app.use('/api/admin/hasoffers', hasOffersConfigRoutes_1.default);
 // Public registration endpoint
 app.post('/api/register', userController_1.registerUser);
 // Public contact tickets endpoints
@@ -117,9 +125,25 @@ app.get('/api/casinos/slug/:slug', casinoController_1.getCasinoBySlug);
 app.get('/api/casinos/category/:slug', async (req, res) => {
     try {
         const { slug } = req.params;
-        const category = await prisma_1.prisma.casinoCategory.findUnique({
+        const cleanSlug = slug.trim().toLowerCase();
+        const variations = Array.from(new Set([
+            cleanSlug,
+            cleanSlug.endsWith('s') ? cleanSlug.slice(0, -1) : cleanSlug + 's',
+            cleanSlug.replace(/-casinos$/, '-casino'),
+            cleanSlug.replace(/-casino$/, '-casinos'),
+            cleanSlug.replace(/-bonuses$/, '-bonus'),
+            cleanSlug.replace(/-bonus$/, '-bonuses')
+        ]));
+        const category = await prisma_1.prisma.casinoCategory.findFirst({
             where: {
-                slug,
+                OR: variations.map((v) => ({
+                    slug: { equals: v, mode: 'insensitive' },
+                })),
+            },
+            include: {
+                content_sections: {
+                    orderBy: { sort_order: 'asc' },
+                },
             },
         });
         if (!category) {

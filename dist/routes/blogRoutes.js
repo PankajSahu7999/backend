@@ -8,5 +8,7 @@ router.get('/:id', blogController_1.getBlogById);
 router.post('/', blogController_1.createBlog);
 router.put('/:id', blogController_1.updateBlog);
 router.delete('/:id', blogController_1.deleteBlog);
+router.put('/ranking/bulk', blogController_1.updateBlogRanking);
+router.put('/:id/position', blogController_1.updateBlogPosition);
 exports.default = router;
 //# sourceMappingURL=blogRoutes.js.map

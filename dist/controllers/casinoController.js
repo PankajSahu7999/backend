@@ -92,9 +92,10 @@ const getCasinos = async (req, res) => {
 exports.getCasinos = getCasinos;
 const getCasino = async (req, res) => {
     try {
-        const id = String(req.params.id);
-        const casino = await prisma_1.prisma.casino.findUnique({
-            where: { id },
+        const identifier = String(req.params.id);
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+        const casino = await prisma_1.prisma.casino.findFirst({
+            where: isUUID ? { id: identifier } : { slug: identifier },
             include: {
                 languages: true,
                 bonuses: true,

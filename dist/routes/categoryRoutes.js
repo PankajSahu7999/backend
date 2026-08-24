@@ -10,5 +10,7 @@ router.get('/:id', categoryController_1.getCategoryById);
 router.post('/', categoryController_1.createCategory);
 router.put('/:id', categoryController_1.updateCategory);
 router.delete('/:id', categoryController_1.deleteCategory);
+router.put('/ranking/bulk', categoryController_1.updateCategoryRanking);
+router.put('/:id/position', categoryController_1.updateCategoryPosition);
 exports.default = router;
 //# sourceMappingURL=categoryRoutes.js.map

@@ -3,8 +3,23 @@ import { prisma } from '../prisma';
 
 export const getFaqs = async (req: Request, res: Response): Promise<void> => {
   try {
+    const { category, status, limit } = req.query;
+
+    const where: any = {};
+    if (status !== undefined) {
+      where.status = status === 'true' || status === '1';
+    }
+    if (category) {
+      where.category = {
+        equals: String(category),
+        mode: 'insensitive',
+      };
+    }
+
     const faqs = await prisma.faq.findMany({
+      where,
       orderBy: [{ category: 'asc' }, { sort_order: 'asc' }],
+      take: limit ? Number(limit) : undefined,
     });
     res.json(faqs);
   } catch (error) {

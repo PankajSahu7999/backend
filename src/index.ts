@@ -71,6 +71,12 @@ import casinoAffiliateLinkRoutes from './routes/casinoAffiliateLinkRoutes';
 import { registerUser } from './controllers/userController';
 import contactTicketRoutes from './routes/contactTicketRoutes';
 import { createTicket, getUserTickets } from './controllers/contactTicketController';
+import hasOffersPostbackRoutes from './routes/hasOffersPostbackRoutes';
+import hasOffersConfigRoutes from './routes/hasOffersConfigRoutes';
+import guideRoutes from './routes/guideRoutes';
+
+app.use('/api/admin/guides', guideRoutes);
+app.use('/api/guides', guideRoutes);
 
 app.use('/api/admin/email-campaigns', emailRoutes);
 app.use('/api/admin/casinos', casinoRoutes);
@@ -95,6 +101,10 @@ app.use('/api/admin/casino-affiliate-links', casinoAffiliateLinkRoutes);
 app.use('/api/casino-affiliate-links', casinoAffiliateLinkRoutes);
 app.use('/api/admin/contact-tickets', contactTicketRoutes);
 app.use('/api/casino-reviews', casinoReviewRoutes);
+
+// HasOffers postback tracking routes
+app.use('/api/hasoffers', hasOffersPostbackRoutes);
+app.use('/api/admin/hasoffers', hasOffersConfigRoutes);
 
 // Public registration endpoint
 app.post('/api/register', registerUser);
@@ -129,9 +139,26 @@ app.get('/api/casinos/category/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
 
-    const category = await prisma.casinoCategory.findUnique({
+    const cleanSlug = slug.trim().toLowerCase();
+    const variations = Array.from(new Set([
+      cleanSlug,
+      cleanSlug.endsWith('s') ? cleanSlug.slice(0, -1) : cleanSlug + 's',
+      cleanSlug.replace(/-casinos$/, '-casino'),
+      cleanSlug.replace(/-casino$/, '-casinos'),
+      cleanSlug.replace(/-bonuses$/, '-bonus'),
+      cleanSlug.replace(/-bonus$/, '-bonuses')
+    ]));
+
+    const category = await prisma.casinoCategory.findFirst({
       where: {
-        slug,
+        OR: variations.map((v) => ({
+          slug: { equals: v, mode: 'insensitive' as const },
+        })),
+      },
+      include: {
+        content_sections: {
+          orderBy: { sort_order: 'asc' },
+        },
       },
     });
 

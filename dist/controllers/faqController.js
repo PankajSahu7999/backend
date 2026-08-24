@@ -4,8 +4,21 @@ exports.deleteFaq = exports.updateFaq = exports.createFaq = exports.getFaqById =
 const prisma_1 = require("../prisma");
 const getFaqs = async (req, res) => {
     try {
+        const { category, status, limit } = req.query;
+        const where = {};
+        if (status !== undefined) {
+            where.status = status === 'true' || status === '1';
+        }
+        if (category) {
+            where.category = {
+                equals: String(category),
+                mode: 'insensitive',
+            };
+        }
         const faqs = await prisma_1.prisma.faq.findMany({
+            where,
             orderBy: [{ category: 'asc' }, { sort_order: 'asc' }],
+            take: limit ? Number(limit) : undefined,
         });
         res.json(faqs);
     }

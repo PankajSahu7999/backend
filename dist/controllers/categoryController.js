@@ -1,11 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteCategory = exports.updateCategory = exports.createCategory = exports.getCategoryById = exports.getCategoryBySlug = exports.getCategories = void 0;
+exports.updateCategoryPosition = exports.updateCategoryRanking = exports.deleteCategory = exports.updateCategory = exports.createCategory = exports.getCategoryById = exports.getCategoryBySlug = exports.getCategories = void 0;
 const prisma_1 = require("../prisma");
 const getCategories = async (req, res) => {
     try {
         const categories = await prisma_1.prisma.casinoCategory.findMany({
-            orderBy: { name: 'asc' },
+            orderBy: { sort_order: 'asc' },
+            include: {
+                content_sections: {
+                    orderBy: { sort_order: 'asc' }
+                }
+            }
         });
         res.json(categories);
     }
@@ -18,8 +23,26 @@ exports.getCategories = getCategories;
 const getCategoryBySlug = async (req, res) => {
     try {
         const slug = String(req.params.slug);
+        const cleanSlug = slug.trim().toLowerCase();
+        const variations = Array.from(new Set([
+            cleanSlug,
+            cleanSlug.endsWith('s') ? cleanSlug.slice(0, -1) : cleanSlug + 's',
+            cleanSlug.replace(/-casinos$/, '-casino'),
+            cleanSlug.replace(/-casino$/, '-casinos'),
+            cleanSlug.replace(/-bonuses$/, '-bonus'),
+            cleanSlug.replace(/-bonus$/, '-bonuses')
+        ]));
         const category = await prisma_1.prisma.casinoCategory.findFirst({
-            where: { slug },
+            where: {
+                OR: variations.map((v) => ({
+                    slug: { equals: v, mode: 'insensitive' },
+                })),
+            },
+            include: {
+                content_sections: {
+                    orderBy: { sort_order: 'asc' }
+                }
+            }
         });
         if (!category) {
             res.status(404).json({ error: 'Category not found' });
@@ -62,6 +85,11 @@ const getCategoryById = async (req, res) => {
         const id = String(req.params.id);
         const category = await prisma_1.prisma.casinoCategory.findUnique({
             where: { id },
+            include: {
+                content_sections: {
+                    orderBy: { sort_order: 'asc' }
+                }
+            }
         });
         if (!category) {
             res.status(404).json({ error: 'Category not found' });
@@ -77,16 +105,32 @@ const getCategoryById = async (req, res) => {
 exports.getCategoryById = getCategoryById;
 const createCategory = async (req, res) => {
     try {
-        const { name, slug } = req.body;
+        const { name, slug, content_sections } = req.body;
+        console.log('Creating category with data:', { name, slug, content_sections });
         if (!name || !slug) {
             res.status(400).json({ error: 'Missing required fields: name, slug' });
             return;
         }
+        const validSections = Array.isArray(content_sections)
+            ? content_sections.filter((s) => s && (s.title?.trim() || s.content?.trim()))
+            : [];
         const category = await prisma_1.prisma.casinoCategory.create({
             data: {
                 name,
                 slug,
+                content_sections: validSections.length > 0 ? {
+                    create: validSections.map((section, index) => ({
+                        title: section.title || '',
+                        content: section.content || '',
+                        sort_order: section.sort_order !== undefined ? Number(section.sort_order) : index
+                    }))
+                } : undefined
             },
+            include: {
+                content_sections: {
+                    orderBy: { sort_order: 'asc' }
+                }
+            }
         });
         res.status(201).json(category);
     }
@@ -99,15 +143,39 @@ exports.createCategory = createCategory;
 const updateCategory = async (req, res) => {
     try {
         const id = String(req.params.id);
-        const { name, slug } = req.body;
-        const category = await prisma_1.prisma.casinoCategory.update({
-            where: { id },
-            data: {
-                name,
-                slug,
-            },
+        const { name, slug, content_sections } = req.body;
+        console.log('Updating category with data:', { id, name, slug, content_sections });
+        const validSections = Array.isArray(content_sections)
+            ? content_sections.filter((s) => s && (s.title?.trim() || s.content?.trim()))
+            : [];
+        const updatedCategory = await prisma_1.prisma.$transaction(async (tx) => {
+            // Clear existing content sections if provided
+            if (content_sections !== undefined) {
+                await tx.casinoCategoryContentSection.deleteMany({
+                    where: { category_id: id }
+                });
+            }
+            return tx.casinoCategory.update({
+                where: { id },
+                data: {
+                    name,
+                    slug,
+                    content_sections: validSections.length > 0 ? {
+                        create: validSections.map((section, index) => ({
+                            title: section.title || '',
+                            content: section.content || '',
+                            sort_order: section.sort_order !== undefined ? Number(section.sort_order) : index
+                        }))
+                    } : undefined
+                },
+                include: {
+                    content_sections: {
+                        orderBy: { sort_order: 'asc' }
+                    }
+                }
+            });
         });
-        res.json(category);
+        res.json(updatedCategory);
     }
     catch (error) {
         console.error('Error updating category:', error);
@@ -129,4 +197,60 @@ const deleteCategory = async (req, res) => {
     }
 };
 exports.deleteCategory = deleteCategory;
+const updateCategoryRanking = async (req, res) => {
+    try {
+        const { rankings } = req.body;
+        if (!Array.isArray(rankings)) {
+            res.status(400).json({ error: 'Invalid rankings data' });
+            return;
+        }
+        await prisma_1.prisma.$transaction(rankings.map((ranking) => prisma_1.prisma.casinoCategory.update({
+            where: { id: ranking.id },
+            data: { sort_order: ranking.sort_order }
+        })));
+        res.json({ message: 'Rankings updated successfully' });
+    }
+    catch (error) {
+        console.error('Error updating category rankings:', error);
+        res.status(500).json({ error: 'Failed to update rankings' });
+    }
+};
+exports.updateCategoryRanking = updateCategoryRanking;
+const updateCategoryPosition = async (req, res) => {
+    try {
+        const id = String(req.params.id);
+        const { position } = req.body;
+        if (position !== 'top' && position !== 'bottom') {
+            res.status(400).json({ error: 'Invalid position. Must be "top" or "bottom"' });
+            return;
+        }
+        const category = await prisma_1.prisma.casinoCategory.findUnique({
+            where: { id }
+        });
+        if (!category) {
+            res.status(404).json({ error: 'Category not found' });
+            return;
+        }
+        const allCategories = await prisma_1.prisma.casinoCategory.findMany({
+            orderBy: { sort_order: 'asc' }
+        });
+        let newSortOrder;
+        if (position === 'top') {
+            newSortOrder = Math.min(...allCategories.map(c => c.sort_order || 0)) - 1;
+        }
+        else {
+            newSortOrder = Math.max(...allCategories.map(c => c.sort_order || 0)) + 1;
+        }
+        await prisma_1.prisma.casinoCategory.update({
+            where: { id },
+            data: { sort_order: newSortOrder }
+        });
+        res.json({ message: 'Position updated successfully' });
+    }
+    catch (error) {
+        console.error('Error updating category position:', error);
+        res.status(500).json({ error: 'Failed to update position' });
+    }
+};
+exports.updateCategoryPosition = updateCategoryPosition;
 //# sourceMappingURL=categoryController.js.map

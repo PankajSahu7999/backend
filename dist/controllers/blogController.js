@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteBlog = exports.updateBlog = exports.createBlog = exports.getBlogById = exports.getBlogs = void 0;
+exports.updateBlogPosition = exports.updateBlogRanking = exports.deleteBlog = exports.updateBlog = exports.createBlog = exports.getBlogById = exports.getBlogs = void 0;
 const prisma_1 = require("../prisma");
 const client_1 = require("@prisma/client");
 /** Converts a title to a URL-safe base slug */
@@ -28,7 +28,7 @@ const getBlogs = async (req, res) => {
                     },
                 },
             },
-            orderBy: { created_at: 'desc' },
+            orderBy: { sort_order: 'asc' },
         });
         res.json(blogs);
     }
@@ -40,9 +40,10 @@ const getBlogs = async (req, res) => {
 exports.getBlogs = getBlogs;
 const getBlogById = async (req, res) => {
     try {
-        const id = String(req.params.id);
-        const blog = await prisma_1.prisma.blog.findUnique({
-            where: { id },
+        const identifier = String(req.params.id);
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+        const blog = await prisma_1.prisma.blog.findFirst({
+            where: isUUID ? { id: identifier } : { slug: identifier },
             include: {
                 author: {
                     select: {
@@ -144,4 +145,60 @@ const deleteBlog = async (req, res) => {
     }
 };
 exports.deleteBlog = deleteBlog;
+const updateBlogRanking = async (req, res) => {
+    try {
+        const { rankings } = req.body;
+        if (!Array.isArray(rankings)) {
+            res.status(400).json({ error: 'Invalid rankings data' });
+            return;
+        }
+        await prisma_1.prisma.$transaction(rankings.map((ranking) => prisma_1.prisma.blog.update({
+            where: { id: ranking.id },
+            data: { sort_order: ranking.sort_order }
+        })));
+        res.json({ message: 'Rankings updated successfully' });
+    }
+    catch (error) {
+        console.error('Error updating blog rankings:', error);
+        res.status(500).json({ error: 'Failed to update rankings' });
+    }
+};
+exports.updateBlogRanking = updateBlogRanking;
+const updateBlogPosition = async (req, res) => {
+    try {
+        const id = String(req.params.id);
+        const { position } = req.body;
+        if (position !== 'top' && position !== 'bottom') {
+            res.status(400).json({ error: 'Invalid position. Must be "top" or "bottom"' });
+            return;
+        }
+        const blog = await prisma_1.prisma.blog.findUnique({
+            where: { id }
+        });
+        if (!blog) {
+            res.status(404).json({ error: 'Blog not found' });
+            return;
+        }
+        const allBlogs = await prisma_1.prisma.blog.findMany({
+            orderBy: { sort_order: 'asc' }
+        });
+        let newSortOrder;
+        if (position === 'top') {
+            newSortOrder = Math.min(...allBlogs.map(b => b.sort_order || 0)) - 1;
+        }
+        else {
+            newSortOrder = Math.max(...allBlogs.map(b => b.sort_order || 0)) + 1;
+        }
+        await prisma_1.prisma.blog.update({
+            where: { id },
+            data: { sort_order: newSortOrder }
+        });
+        res.json({ message: 'Position updated successfully' });
+    }
+    catch (error) {
+        console.error('Error updating blog position:', error);
+        res.status(500).json({ error: 'Failed to update position' });
+    }
+};
+exports.updateBlogPosition = updateBlogPosition;
 //# sourceMappingURL=blogController.js.map

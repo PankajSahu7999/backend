@@ -9,6 +9,7 @@ router.get('/:id', newsController_1.getNewsById);
 router.post('/', newsController_1.createNews);
 router.put('/:id', newsController_1.updateNews);
 router.delete('/:id', newsController_1.deleteNews);
-
+router.put('/ranking/bulk', newsController_1.updateNewsRanking);
+router.put('/:id/position', newsController_1.updateNewsPosition);
 exports.default = router;
 //# sourceMappingURL=newsRoutes.js.map

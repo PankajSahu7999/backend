@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteNews = exports.updateNews = exports.createNews = exports.getNewsById = exports.getNews = void 0;
+exports.updateNewsPosition = exports.updateNewsRanking = exports.getNewsSlugs = exports.deleteNews = exports.updateNews = exports.createNews = exports.getNewsById = exports.getNews = void 0;
 const prisma_1 = require("../prisma");
 const client_1 = require("@prisma/client");
 /** Converts a title to a URL-safe base slug */
@@ -28,7 +28,7 @@ const getNews = async (req, res) => {
                     },
                 },
             },
-            orderBy: { created_at: 'desc' },
+            orderBy: { sort_order: 'asc' },
         });
         res.json(news);
     }
@@ -40,9 +40,10 @@ const getNews = async (req, res) => {
 exports.getNews = getNews;
 const getNewsById = async (req, res) => {
     try {
-        const id = String(req.params.id);
-        const news = await prisma_1.prisma.news.findUnique({
-            where: { id },
+        const identifier = String(req.params.id);
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+        const news = await prisma_1.prisma.news.findFirst({
+            where: isUUID ? { id: identifier } : { slug: identifier },
             include: {
                 author: {
                     select: {
@@ -142,4 +143,78 @@ const deleteNews = async (req, res) => {
     }
 };
 exports.deleteNews = deleteNews;
+const getNewsSlugs = async (req, res) => {
+    try {
+        const news = await prisma_1.prisma.news.findMany({
+            select: {
+                slug: true,
+            },
+            orderBy: {
+                created_at: 'desc',
+            },
+        });
+        res.json(news);
+    }
+    catch (error) {
+        console.error('Error fetching news slugs:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.getNewsSlugs = getNewsSlugs;
+const updateNewsRanking = async (req, res) => {
+    try {
+        const { rankings } = req.body;
+        if (!Array.isArray(rankings)) {
+            res.status(400).json({ error: 'Invalid rankings data' });
+            return;
+        }
+        await prisma_1.prisma.$transaction(rankings.map((ranking) => prisma_1.prisma.news.update({
+            where: { id: ranking.id },
+            data: { sort_order: ranking.sort_order }
+        })));
+        res.json({ message: 'Rankings updated successfully' });
+    }
+    catch (error) {
+        console.error('Error updating news rankings:', error);
+        res.status(500).json({ error: 'Failed to update rankings' });
+    }
+};
+exports.updateNewsRanking = updateNewsRanking;
+const updateNewsPosition = async (req, res) => {
+    try {
+        const id = String(req.params.id);
+        const { position } = req.body;
+        if (position !== 'top' && position !== 'bottom') {
+            res.status(400).json({ error: 'Invalid position. Must be "top" or "bottom"' });
+            return;
+        }
+        const newsItem = await prisma_1.prisma.news.findUnique({
+            where: { id }
+        });
+        if (!newsItem) {
+            res.status(404).json({ error: 'News not found' });
+            return;
+        }
+        const allNews = await prisma_1.prisma.news.findMany({
+            orderBy: { sort_order: 'asc' }
+        });
+        let newSortOrder;
+        if (position === 'top') {
+            newSortOrder = Math.min(...allNews.map(n => n.sort_order || 0)) - 1;
+        }
+        else {
+            newSortOrder = Math.max(...allNews.map(n => n.sort_order || 0)) + 1;
+        }
+        await prisma_1.prisma.news.update({
+            where: { id },
+            data: { sort_order: newSortOrder }
+        });
+        res.json({ message: 'Position updated successfully' });
+    }
+    catch (error) {
+        console.error('Error updating news position:', error);
+        res.status(500).json({ error: 'Failed to update position' });
+    }
+};
+exports.updateNewsPosition = updateNewsPosition;
 //# sourceMappingURL=newsController.js.map

@@ -5,6 +5,11 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
   try {
     const categories = await prisma.casinoCategory.findMany({
       orderBy: { sort_order: 'asc' },
+      include: {
+        content_sections: {
+          orderBy: { sort_order: 'asc' }
+        }
+      }
     });
     res.json(categories);
   } catch (error) {
@@ -16,8 +21,27 @@ export const getCategories = async (req: Request, res: Response): Promise<void> 
 export const getCategoryBySlug = async (req: Request, res: Response): Promise<void> => {
   try {
     const slug = String(req.params.slug);
+    const cleanSlug = slug.trim().toLowerCase();
+    const variations = Array.from(new Set([
+      cleanSlug,
+      cleanSlug.endsWith('s') ? cleanSlug.slice(0, -1) : cleanSlug + 's',
+      cleanSlug.replace(/-casinos$/, '-casino'),
+      cleanSlug.replace(/-casino$/, '-casinos'),
+      cleanSlug.replace(/-bonuses$/, '-bonus'),
+      cleanSlug.replace(/-bonus$/, '-bonuses')
+    ]));
+
     const category = await prisma.casinoCategory.findFirst({
-      where: { slug },
+      where: {
+        OR: variations.map((v) => ({
+          slug: { equals: v, mode: 'insensitive' as const },
+        })),
+      },
+      include: {
+        content_sections: {
+          orderBy: { sort_order: 'asc' }
+        }
+      }
     });
     if (!category) {
       res.status(404).json({ error: 'Category not found' });
@@ -61,6 +85,11 @@ export const getCategoryById = async (req: Request, res: Response): Promise<void
     const id = String(req.params.id);
     const category = await prisma.casinoCategory.findUnique({
       where: { id },
+      include: {
+        content_sections: {
+          orderBy: { sort_order: 'asc' }
+        }
+      }
     });
     if (!category) {
       res.status(404).json({ error: 'Category not found' });
@@ -75,18 +104,36 @@ export const getCategoryById = async (req: Request, res: Response): Promise<void
 
 export const createCategory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, slug } = req.body;
+    const { name, slug, content_sections } = req.body;
+
+    console.log('Creating category with data:', { name, slug, content_sections });
 
     if (!name || !slug) {
       res.status(400).json({ error: 'Missing required fields: name, slug' });
       return;
     }
 
+    const validSections = Array.isArray(content_sections)
+      ? content_sections.filter((s: any) => s && (s.title?.trim() || s.content?.trim()))
+      : [];
+
     const category = await prisma.casinoCategory.create({
       data: {
         name,
         slug,
+        content_sections: validSections.length > 0 ? {
+          create: validSections.map((section: any, index: number) => ({
+            title: section.title || '',
+            content: section.content || '',
+            sort_order: section.sort_order !== undefined ? Number(section.sort_order) : index
+          }))
+        } : undefined
       },
+      include: {
+        content_sections: {
+          orderBy: { sort_order: 'asc' }
+        }
+      }
     });
     res.status(201).json(category);
   } catch (error) {
@@ -98,16 +145,44 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
 export const updateCategory = async (req: Request, res: Response): Promise<void> => {
   try {
     const id = String(req.params.id);
-    const { name, slug } = req.body;
+    const { name, slug, content_sections } = req.body;
 
-    const category = await prisma.casinoCategory.update({
-      where: { id },
-      data: {
-        name,
-        slug,
-      },
+    console.log('Updating category with data:', { id, name, slug, content_sections });
+
+    const validSections = Array.isArray(content_sections)
+      ? content_sections.filter((s: any) => s && (s.title?.trim() || s.content?.trim()))
+      : [];
+
+    const updatedCategory = await prisma.$transaction(async (tx) => {
+      // Clear existing content sections if provided
+      if (content_sections !== undefined) {
+        await tx.casinoCategoryContentSection.deleteMany({
+          where: { category_id: id }
+        });
+      }
+
+      return tx.casinoCategory.update({
+        where: { id },
+        data: {
+          name,
+          slug,
+          content_sections: validSections.length > 0 ? {
+            create: validSections.map((section: any, index: number) => ({
+              title: section.title || '',
+              content: section.content || '',
+              sort_order: section.sort_order !== undefined ? Number(section.sort_order) : index
+            }))
+          } : undefined
+        },
+        include: {
+          content_sections: {
+            orderBy: { sort_order: 'asc' }
+          }
+        }
+      });
     });
-    res.json(category);
+
+    res.json(updatedCategory);
   } catch (error) {
     console.error('Error updating category:', error);
     res.status(500).json({ error: 'Internal server error' });
