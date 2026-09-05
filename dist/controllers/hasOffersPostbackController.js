@@ -8,9 +8,10 @@ const prisma_1 = require("../prisma");
  */
 const handlePostback = async (req, res) => {
     try {
+        const params = { ...req.query, ...(req.body || {}) };
         const { transaction_id, offer_id, affiliate_id, aff_sub, aff_sub2, aff_sub3, aff_sub4, aff_sub5, payout, sale_amount, amount, // alternative parameter name for sale_amount
         revenue, // alternative parameter name for payout
-        ip, user_agent, country, referring_url, status = 'pending', conversion_type = 'lead' } = req.query;
+        ip, user_agent, country, referring_url, status = 'approved', conversion_type = 'sale' } = params;
         // Validate required fields
         if (!transaction_id) {
             return res.status(400).json({ error: 'Missing required field: transaction_id' });
@@ -157,14 +158,16 @@ const generateTrackingClick = async (req, res) => {
             }
         });
         // Generate affiliate URL with tracking parameters
-        let affiliateUrl = click.casino.affiliate_url || click.casino.default_affiliate_url;
-        if (config && affiliateUrl) {
-            // Append HasOffers tracking parameters
-            const separator = affiliateUrl.includes('?') ? '&' : '?';
-            affiliateUrl = `${affiliateUrl}${separator}aff_sub=${click_id}`;
+        let affiliateUrl = click.casino.default_affiliate_url || click.casino.website_url;
+        if (config) {
             // If we have the network's offer URL format, use it
             if (config.network_domain && config.offer_id) {
                 affiliateUrl = `https://${config.network_domain}/aff_c?offer_id=${config.offer_id}&aff_sub=${click_id}`;
+            }
+            else if (affiliateUrl) {
+                // Append HasOffers tracking parameters
+                const separator = affiliateUrl.includes('?') ? '&' : '?';
+                affiliateUrl = `${affiliateUrl}${separator}aff_sub=${click_id}`;
             }
         }
         res.status(201).json({

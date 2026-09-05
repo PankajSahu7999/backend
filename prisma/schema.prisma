@@ -104,6 +104,7 @@ model Casino {
   hasoffers_conversions   HasOffersConversion[]
   hasoffers_configs       HasOffersPostbackConfig[]
   reviews                 Review[]
+  bonus_section_items     BonusSectionItem[]
 
   @@index([slug])
   @@index([featured])
@@ -686,4 +687,43 @@ model Guide {
   @@index([slug])
   @@index([status])
 }
+
+model BonusSection {
+  id          String             @id @default(uuid()) @db.Uuid
+  title       String             @db.VarChar(255)
+  slug        String             @unique @db.VarChar(255)
+  badge_text  String?            @db.VarChar(100)
+  description String?            @db.Text
+  icon_name   String?            @default("Gift") @db.VarChar(100)
+  sort_order  Int?               @default(0)
+  status      String?            @default("active") @db.VarChar(50)
+  created_at  DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at  DateTime?          @updatedAt @db.Timestamp(6)
+  items       BonusSectionItem[]
+
+  @@index([slug])
+  @@index([status])
+}
+
+model BonusSectionItem {
+  id                   String       @id @default(uuid()) @db.Uuid
+  section_id           String       @db.Uuid
+  casino_id            String       @db.Uuid
+  custom_title         String?      @db.VarChar(255)
+  bonus_code           String?      @db.VarChar(100)
+  wagering_requirement String?      @db.VarChar(100)
+  min_deposit          String?      @db.VarChar(100)
+  exclusive            Boolean?     @default(false)
+  highlight_badge      String?      @db.VarChar(100)
+  claim_url            String?      @db.VarChar(500)
+  sort_order           Int?         @default(0)
+  created_at           DateTime?    @default(now()) @db.Timestamp(6)
+  updated_at           DateTime?    @updatedAt @db.Timestamp(6)
+  section              BonusSection @relation(fields: [section_id], references: [id], onDelete: Cascade)
+  casino               Casino       @relation(fields: [casino_id], references: [id], onDelete: Cascade)
+
+  @@index([section_id])
+  @@index([casino_id])
+}
+
 

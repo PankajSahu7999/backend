@@ -74,6 +74,12 @@ const contactTicketRoutes_1 = __importDefault(require("./routes/contactTicketRou
 const contactTicketController_1 = require("./controllers/contactTicketController");
 const hasOffersPostbackRoutes_1 = __importDefault(require("./routes/hasOffersPostbackRoutes"));
 const hasOffersConfigRoutes_1 = __importDefault(require("./routes/hasOffersConfigRoutes"));
+const guideRoutes_1 = __importDefault(require("./routes/guideRoutes"));
+const bonusSectionRoutes_1 = __importDefault(require("./routes/bonusSectionRoutes"));
+app.use('/api/admin/guides', guideRoutes_1.default);
+app.use('/api/guides', guideRoutes_1.default);
+app.use('/api/admin/bonus-sections', bonusSectionRoutes_1.default);
+app.use('/api/bonus-sections', bonusSectionRoutes_1.default);
 app.use('/api/admin/email-campaigns', emailRoutes_1.default);
 app.use('/api/admin/casinos', casinoRoutes_1.default);
 app.use('/api/admin/users', userRoutes_1.default);

@@ -7,6 +7,7 @@ import { prisma } from '../prisma';
  */
 export const handlePostback = async (req: Request, res: Response) => {
   try {
+    const params: any = { ...req.query, ...(req.body || {}) };
     const {
       transaction_id,
       offer_id,
@@ -24,9 +25,9 @@ export const handlePostback = async (req: Request, res: Response) => {
       user_agent,
       country,
       referring_url,
-      status = 'pending',
-      conversion_type = 'lead'
-    } = req.query;
+      status = 'approved',
+      conversion_type = 'sale'
+    } = params;
 
     // Validate required fields
     if (!transaction_id) {
@@ -188,16 +189,16 @@ export const generateTrackingClick = async (req: Request, res: Response) => {
     });
 
     // Generate affiliate URL with tracking parameters
-    let affiliateUrl = click.casino.affiliate_url || click.casino.default_affiliate_url;
+    let affiliateUrl = (click.casino as any).default_affiliate_url || (click.casino as any).website_url;
     
-    if (config && affiliateUrl) {
-      // Append HasOffers tracking parameters
-      const separator = affiliateUrl.includes('?') ? '&' : '?';
-      affiliateUrl = `${affiliateUrl}${separator}aff_sub=${click_id}`;
-      
+    if (config) {
       // If we have the network's offer URL format, use it
       if (config.network_domain && config.offer_id) {
         affiliateUrl = `https://${config.network_domain}/aff_c?offer_id=${config.offer_id}&aff_sub=${click_id}`;
+      } else if (affiliateUrl) {
+        // Append HasOffers tracking parameters
+        const separator = affiliateUrl.includes('?') ? '&' : '?';
+        affiliateUrl = `${affiliateUrl}${separator}aff_sub=${click_id}`;
       }
     }
 

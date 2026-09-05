@@ -9,16 +9,42 @@ const sharp_1 = __importDefault(require("sharp"));
 const path_1 = __importDefault(require("path"));
 const promises_1 = __importDefault(require("fs/promises"));
 // Allowed file types and size limits
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
-const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/ogg'];
+const ALLOWED_IMAGE_TYPES = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'image/svg+xml',
+    'image/avif',
+    'image/x-icon',
+    'image/vnd.microsoft.icon',
+    'image/bmp',
+    'image/tiff',
+    'image/pjpeg',
+    'image/apng',
+    'image/heic',
+    'image/heif',
+];
+const ALLOWED_VIDEO_TYPES = [
+    'video/mp4',
+    'video/webm',
+    'video/ogg',
+    'video/quicktime',
+    'video/x-msvideo',
+    'video/mpeg',
+    'video/3gpp',
+];
+const ALLOWED_IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.avif', '.ico', '.bmp', '.tiff', '.jfif', '.apng', '.heic', '.heif'];
+const ALLOWED_VIDEO_EXTS = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv', '.3gp'];
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20MB
 // Generate unique filename
 const generateFileName = (originalName, folder) => {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 15);
-    const ext = path_1.default.extname(originalName);
-    const baseName = path_1.default.basename(originalName, ext).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+    const ext = path_1.default.extname(originalName) || '.png';
+    const baseName = path_1.default.basename(originalName, ext).replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() || 'upload';
     return `${folder}/${baseName}_${timestamp}_${random}${ext}`;
 };
 // Validate file
@@ -26,13 +52,14 @@ const validateFile = (file, folder) => {
     if (!file) {
         return { valid: false, error: 'No file provided' };
     }
-    const isImage = ALLOWED_IMAGE_TYPES.includes(file.mimetype);
-    const isVideo = ALLOWED_VIDEO_TYPES.includes(file.mimetype);
+    const ext = path_1.default.extname(file.originalname || '').toLowerCase();
+    const isImage = ALLOWED_IMAGE_TYPES.includes(file.mimetype) || file.mimetype?.startsWith('image/') || ALLOWED_IMAGE_EXTS.includes(ext);
+    const isVideo = ALLOWED_VIDEO_TYPES.includes(file.mimetype) || file.mimetype?.startsWith('video/') || ALLOWED_VIDEO_EXTS.includes(ext);
     if (!isImage && !isVideo) {
         return { valid: false, error: 'Invalid file type. Only images and videos are allowed.' };
     }
     if (isImage && file.size > MAX_IMAGE_SIZE) {
-        return { valid: false, error: 'Image size exceeds 10MB limit.' };
+        return { valid: false, error: 'Image size exceeds 20MB limit.' };
     }
     if (file.size > MAX_FILE_SIZE) {
         return { valid: false, error: 'File size exceeds 50MB limit.' };

@@ -74,9 +74,13 @@ import { createTicket, getUserTickets } from './controllers/contactTicketControl
 import hasOffersPostbackRoutes from './routes/hasOffersPostbackRoutes';
 import hasOffersConfigRoutes from './routes/hasOffersConfigRoutes';
 import guideRoutes from './routes/guideRoutes';
+import bonusSectionRoutes from './routes/bonusSectionRoutes';
 
 app.use('/api/admin/guides', guideRoutes);
 app.use('/api/guides', guideRoutes);
+
+app.use('/api/admin/bonus-sections', bonusSectionRoutes);
+app.use('/api/bonus-sections', bonusSectionRoutes);
 
 app.use('/api/admin/email-campaigns', emailRoutes);
 app.use('/api/admin/casinos', casinoRoutes);
