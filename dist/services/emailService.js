@@ -31,10 +31,10 @@ const getBrandName = async () => {
             where: { id: 1 },
             select: { site_name: true },
         });
-        return settings?.site_name?.trim() || 'CasinoLab';
+        return settings?.site_name?.trim() || 'Casino Reviews Book';
     }
     catch {
-        return 'CasinoLab';
+        return 'Casino Reviews Book';
     }
 };
 const scheduleCampaign = async (campaignId, subject, body, target) => {

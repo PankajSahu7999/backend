@@ -232,8 +232,21 @@ app.get('/api/casinos/category/:slug', async (req, res) => {
 });
 app.get('/api/casinos', async (req, res) => {
   try {
+    const { search, limit } = req.query;
+    const where: any = { status: 'active' };
+
+    if (search && typeof search === 'string' && search.trim() !== '') {
+      const q = search.trim();
+      where.OR = [
+        { name: { contains: q, mode: 'insensitive' } },
+        { slug: { contains: q, mode: 'insensitive' } },
+        { short_description: { contains: q, mode: 'insensitive' } },
+      ];
+    }
+
     const casinos = await prisma.casino.findMany({
-      where: { status: 'active' },
+      where,
+      take: limit ? parseInt(String(limit), 10) : undefined,
       orderBy: { ranking_order: 'asc' },
       include: {
         tags: {

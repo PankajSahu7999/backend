@@ -8,6 +8,7 @@
     "start": "node dist/index.js",
     "seed:guides": "ts-node src/scripts/seedGuides.ts",
     "seed:bonuses": "ts-node src/scripts/seedBonusSections.ts",
+    "seed:casinos": "ts-node src/scripts/seedCasinosFromMongo.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
    "prisma": {

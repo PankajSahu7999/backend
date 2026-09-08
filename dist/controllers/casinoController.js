@@ -57,7 +57,19 @@ const truncateString = (val, maxLength) => {
 };
 const getCasinos = async (req, res) => {
     try {
+        const { search, limit } = req.query;
+        const where = {};
+        if (search && typeof search === 'string' && search.trim() !== '') {
+            const q = search.trim();
+            where.OR = [
+                { name: { contains: q, mode: 'insensitive' } },
+                { slug: { contains: q, mode: 'insensitive' } },
+                { short_description: { contains: q, mode: 'insensitive' } },
+            ];
+        }
         const casinos = await prisma_1.prisma.casino.findMany({
+            where: Object.keys(where).length > 0 ? where : undefined,
+            take: limit ? parseInt(String(limit), 10) : undefined,
             orderBy: { created_at: 'desc' },
             include: {
                 tags: {

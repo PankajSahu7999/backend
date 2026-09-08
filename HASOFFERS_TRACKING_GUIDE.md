@@ -1,6 +1,6 @@
 # HasOffers Postback Tracking Implementation Guide
 
-This guide explains how to use the HasOffers (TUNE) postback tracking system implemented in your casino lab project.
+This guide explains how to use the HasOffers (TUNE) postback tracking system implemented in your Casino Reviews Book project.
 
 ## Overview
 
