@@ -183,6 +183,8 @@ app.get('/api/check-frame', async (req, res) => {
     const csp = (response.headers.get('content-security-policy') || '').toLowerCase();
 
     const isBlocked =
+      !response.ok ||
+      response.status >= 400 ||
       xfo.includes('deny') ||
       xfo.includes('sameorigin') ||
       csp.includes('frame-ancestors');

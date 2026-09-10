@@ -165,7 +165,9 @@ app.get('/api/check-frame', async (req, res) => {
         clearTimeout(timeout);
         const xfo = (response.headers.get('x-frame-options') || '').toLowerCase();
         const csp = (response.headers.get('content-security-policy') || '').toLowerCase();
-        const isBlocked = xfo.includes('deny') ||
+        const isBlocked = !response.ok ||
+            response.status >= 400 ||
+            xfo.includes('deny') ||
             xfo.includes('sameorigin') ||
             csp.includes('frame-ancestors');
         const canEmbed = !isBlocked;
