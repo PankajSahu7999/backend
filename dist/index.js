@@ -49,6 +49,13 @@ app.use((0, cors_1.default)({
 app.use(express_1.default.json());
 // Serve static files from uploads directory
 app.use('/uploads', express_1.default.static(path_1.default.join(process.cwd(), 'uploads')));
+// Fallback for missing uploads images: return a valid SVG image so Googlebot & clients never encounter broken image 404s
+const fallbackImageSvg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="800" height="450" viewBox="0 0 800 450"><rect width="800" height="450" fill="#1e293b"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="600" fill="#94a3b8">Casino Reviews Book</text></svg>`);
+app.use('/uploads', (req, res) => {
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.status(200).send(fallbackImageSvg);
+});
 const emailRoutes_1 = __importDefault(require("./routes/emailRoutes"));
 const casinoRoutes_1 = __importDefault(require("./routes/casinoRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
