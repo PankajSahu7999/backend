@@ -182,12 +182,18 @@ app.get('/api/check-frame', async (req, res) => {
     const xfo = (response.headers.get('x-frame-options') || '').toLowerCase();
     const csp = (response.headers.get('content-security-policy') || '').toLowerCase();
 
-    const isBlocked =
-      !response.ok ||
-      response.status >= 400 ||
+    // Check if the site explicitly forbids iframes via headers
+    const hasFrameBlock =
       xfo.includes('deny') ||
       xfo.includes('sameorigin') ||
       csp.includes('frame-ancestors');
+
+    // Only 404, 410, or 500+ are treated as broken/dead URLs.
+    // 403 or 401 without frame-block headers is Cloudflare/WAF bot protection against server/datacenter IPs,
+    // which real residential browser users load without issue.
+    const isDeadUrl = response.status === 404 || response.status === 410 || response.status >= 500;
+
+    const isBlocked = hasFrameBlock || isDeadUrl;
 
     const canEmbed = !isBlocked;
     if (canEmbed) {
@@ -198,7 +204,8 @@ app.get('/api/check-frame', async (req, res) => {
     res.json({ canEmbed });
   } catch {
     frameCheckCache.delete(targetUrl);
-    res.json({ canEmbed: false });
+    // Default to true on timeout/network issue so browser gets the opportunity to embed
+    res.json({ canEmbed: true });
   }
 });
 
