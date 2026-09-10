@@ -190,10 +190,14 @@ app.get('/api/check-frame', async (req, res) => {
       csp.includes('frame-ancestors');
 
     const canEmbed = !isBlocked;
-    frameCheckCache.set(targetUrl, { canEmbed, timestamp: Date.now() });
+    if (canEmbed) {
+      frameCheckCache.set(targetUrl, { canEmbed: true, timestamp: Date.now() });
+    } else {
+      frameCheckCache.delete(targetUrl);
+    }
     res.json({ canEmbed });
   } catch {
-    frameCheckCache.set(targetUrl, { canEmbed: false, timestamp: Date.now() });
+    frameCheckCache.delete(targetUrl);
     res.json({ canEmbed: false });
   }
 });
