@@ -76,6 +76,9 @@ const hasOffersPostbackRoutes_1 = __importDefault(require("./routes/hasOffersPos
 const hasOffersConfigRoutes_1 = __importDefault(require("./routes/hasOffersConfigRoutes"));
 const guideRoutes_1 = __importDefault(require("./routes/guideRoutes"));
 const bonusSectionRoutes_1 = __importDefault(require("./routes/bonusSectionRoutes"));
+const bonusRoutes_1 = __importDefault(require("./routes/bonusRoutes"));
+const settingsController_1 = require("./controllers/settingsController");
+const categoryController_1 = require("./controllers/categoryController");
 app.use('/api/admin/guides', guideRoutes_1.default);
 app.use('/api/guides', guideRoutes_1.default);
 app.use('/api/admin/bonus-sections', bonusSectionRoutes_1.default);
@@ -91,8 +94,14 @@ app.use('/api/admin/banners', bannerRoutes_1.default);
 app.use('/api/admin/affiliate-links', affiliateLinkRoutes_1.default);
 app.use('/api/admin/media', mediaRoutes_1.default);
 app.use('/api/admin/settings', settingsRoutes_1.default);
+app.get('/api/settings', settingsController_1.getSettings);
 app.use('/api/admin/logs', logsRoutes_1.default);
 app.use('/api/admin/categories', categoryRoutes_1.default);
+app.get('/api/categories', categoryController_1.getCategories);
+app.get('/api/categories/slug/:slug', categoryController_1.getCategoryBySlug);
+app.get('/api/categories/:id', categoryController_1.getCategoryById);
+app.use('/api/admin/bonuses', bonusRoutes_1.default);
+app.use('/api/bonuses', bonusRoutes_1.default);
 app.use('/api/admin/tags', tagRoutes_1.default);
 app.use('/api/admin/countries', countryRoutes_1.default);
 app.use('/api/admin/game-types', gameTypeRoutes_1.default);
@@ -111,8 +120,8 @@ app.post('/api/register', userController_1.registerUser);
 // Public contact tickets endpoints
 app.post('/api/contact-tickets', contactTicketController_1.createTicket);
 app.get('/api/contact-tickets/my-tickets', contactTicketController_1.getUserTickets);
-// Public endpoint: get all banned country codes
-app.get('/api/banned-countries', async (req, res) => {
+// Public endpoint: get all banned country codes (supports both /api/banned-countries and /api/api/banned-countries)
+app.get(['/api/banned-countries', '/api/api/banned-countries'], async (req, res) => {
     try {
         const countries = await prisma_1.prisma.bannedCountry.findMany({
             select: { country_code: true }

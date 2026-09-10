@@ -75,6 +75,9 @@ import hasOffersPostbackRoutes from './routes/hasOffersPostbackRoutes';
 import hasOffersConfigRoutes from './routes/hasOffersConfigRoutes';
 import guideRoutes from './routes/guideRoutes';
 import bonusSectionRoutes from './routes/bonusSectionRoutes';
+import bonusRoutes from './routes/bonusRoutes';
+import { getSettings } from './controllers/settingsController';
+import { getCategories, getCategoryBySlug, getCategoryById } from './controllers/categoryController';
 
 app.use('/api/admin/guides', guideRoutes);
 app.use('/api/guides', guideRoutes);
@@ -93,8 +96,14 @@ app.use('/api/admin/banners', bannerRoutes);
 app.use('/api/admin/affiliate-links', affiliateLinkRoutes);
 app.use('/api/admin/media', mediaRoutes);
 app.use('/api/admin/settings', settingsRoutes);
+app.get('/api/settings', getSettings);
 app.use('/api/admin/logs', logsRoutes);
 app.use('/api/admin/categories', categoryRoutes);
+app.get('/api/categories', getCategories);
+app.get('/api/categories/slug/:slug', getCategoryBySlug);
+app.get('/api/categories/:id', getCategoryById);
+app.use('/api/admin/bonuses', bonusRoutes);
+app.use('/api/bonuses', bonusRoutes);
 app.use('/api/admin/tags', tagRoutes);
 app.use('/api/admin/countries', countryRoutes);
 app.use('/api/admin/game-types', gameTypeRoutes);
@@ -119,8 +128,8 @@ app.get('/api/contact-tickets/my-tickets', getUserTickets);
 
 
 
-// Public endpoint: get all banned country codes
-app.get('/api/banned-countries', async (req, res) => {
+// Public endpoint: get all banned country codes (supports both /api/banned-countries and /api/api/banned-countries)
+app.get(['/api/banned-countries', '/api/api/banned-countries'], async (req, res) => {
   try {
     const countries = await prisma.bannedCountry.findMany({
       select: { country_code: true }

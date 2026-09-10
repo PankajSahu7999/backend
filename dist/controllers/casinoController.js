@@ -70,7 +70,10 @@ const getCasinos = async (req, res) => {
         const casinos = await prisma_1.prisma.casino.findMany({
             where: Object.keys(where).length > 0 ? where : undefined,
             take: limit ? parseInt(String(limit), 10) : undefined,
-            orderBy: { created_at: 'desc' },
+            orderBy: [
+                { ranking_order: 'asc' },
+                { created_at: 'desc' }
+            ],
             include: {
                 tags: {
                     include: {
