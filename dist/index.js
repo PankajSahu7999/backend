@@ -140,6 +140,43 @@ app.get(['/api/banned-countries', '/api/api/banned-countries'], async (req, res)
         res.status(500).json({ error: 'Failed to fetch banned countries' });
     }
 });
+// Check if an external URL allows iframe embedding (with 1-hour cache)
+const frameCheckCache = new Map();
+app.get('/api/check-frame', async (req, res) => {
+    const targetUrl = req.query.url;
+    if (!targetUrl) {
+        return res.json({ canEmbed: false });
+    }
+    const cached = frameCheckCache.get(targetUrl);
+    if (cached && Date.now() - cached.timestamp < 3600000) {
+        return res.json({ canEmbed: cached.canEmbed });
+    }
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3500);
+        const response = await fetch(targetUrl, {
+            method: 'HEAD',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            },
+            signal: controller.signal,
+            redirect: 'follow',
+        });
+        clearTimeout(timeout);
+        const xfo = (response.headers.get('x-frame-options') || '').toLowerCase();
+        const csp = (response.headers.get('content-security-policy') || '').toLowerCase();
+        const isBlocked = xfo.includes('deny') ||
+            xfo.includes('sameorigin') ||
+            csp.includes('frame-ancestors');
+        const canEmbed = !isBlocked;
+        frameCheckCache.set(targetUrl, { canEmbed, timestamp: Date.now() });
+        res.json({ canEmbed });
+    }
+    catch {
+        frameCheckCache.set(targetUrl, { canEmbed: false, timestamp: Date.now() });
+        res.json({ canEmbed: false });
+    }
+});
 const casinoController_1 = require("./controllers/casinoController");
 // Public API endpoint for frontend
 app.get('/api/casinos/slug/:slug/similar', casinoController_1.getSimilarCasinos);
