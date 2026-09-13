@@ -1,11 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+/**
+ * Generate seed-casino-faqs.sql using EXACT slugs from live database
+ * Run: node prisma/generate-faq-sql-exact.js > prisma/seed-casino-faqs.sql
+ */
 
-const prisma = new PrismaClient();
-
-// ---------------------------------------------------------------------------
-// All 132 casinos — EXACT name + slug from live database
-// ---------------------------------------------------------------------------
-const CASINOS: { name: string; slug: string }[] = [
+// All 132 casinos with EXACT name + slug from live DB
+const casinos = [
   { name: 'LokiCasino', slug: 'lokicasino' },
   { name: 'Rolletto Casino', slug: 'rolletto-casino' },
   { name: 'Party Spinz Casino', slug: 'party-spinz-casino' },
@@ -50,10 +49,10 @@ const CASINOS: { name: string; slug: string }[] = [
   { name: 'SlotNeo Casino', slug: 'slotneo-casino' },
   { name: 'Vave Casino', slug: 'vave-casino' },
   { name: 'Betwarts Casino', slug: 'betwarts-casino' },
-  { name: 'Sloto Cash Casino', slug: 'loki-casino' },      // actual slug is loki-casino
+  { name: 'Sloto Cash Casino', slug: 'loki-casino' },
   { name: 'Lucky Hunter Casino', slug: 'lucky-hunter-casino' },
   { name: 'Vox Casino', slug: 'vox-casino' },
-  { name: 'Run4Win Casino', slug: 'run4win-casino' },       // second entry different slug
+  { name: 'Run4Win Casino (2)', slug: 'run4win-casino' },
   { name: 'Retro Bet Casino', slug: 'retro-bet-casino' },
   { name: 'Goldex Casino', slug: 'goldex-casino' },
   { name: 'N1Bet Casino', slug: 'n1bet-casino' },
@@ -140,109 +139,76 @@ const CASINOS: { name: string; slug: string }[] = [
   { name: '888 Casino', slug: '888-casino' },
 ];
 
-// ---------------------------------------------------------------------------
-// Generate 6 FAQs for each casino
-// ---------------------------------------------------------------------------
-function getFaqsForCasino(name: string): { question: string; answer: string; sort_order: number }[] {
+function escape(str) {
+  return str.replace(/'/g, "''").replace(/\\/g, '\\\\');
+}
+
+function getFaqs(name) {
+  const n = escape(name);
   return [
     {
-      question: `Is ${name} a legitimate and licensed online casino?`,
-      answer: `Yes, ${name} is a licensed and regulated online casino that operates under international gambling regulations. The platform is audited regularly for fairness and security, and uses SSL encryption to protect all player data and financial transactions. Always check the footer of the ${name} website for the most up-to-date licensing details.`,
-      sort_order: 1,
+      q: `Is ${n} a legitimate and licensed online casino?`,
+      a: `Yes, ${n} is a licensed and regulated online casino that operates under international gambling regulations. The platform is audited regularly for fairness and security, and uses SSL encryption to protect all player data and financial transactions. Always check the footer of the ${n} website for the most up-to-date licensing details.`,
     },
     {
-      question: `How do I create an account at ${name}?`,
-      answer: `Signing up at ${name} is quick and easy. Click the "Register" or "Sign Up" button on the homepage, fill in your personal details (name, email, date of birth, and address), choose a secure password, and verify your email address. Once verified, you can log in and start playing. Some jurisdictions may require ID verification (KYC) before making your first withdrawal.`,
-      sort_order: 2,
+      q: `How do I create an account at ${n}?`,
+      a: `Signing up at ${n} is quick and easy. Click the "Register" or "Sign Up" button on the homepage, fill in your personal details (name, email, date of birth, and address), choose a secure password, and verify your email address. Once verified, you can log in and start playing. Some jurisdictions may require ID verification (KYC) before making your first withdrawal.`,
     },
     {
-      question: `What welcome bonus does ${name} offer to new players?`,
-      answer: `${name} offers new players a competitive welcome package, which typically includes a match deposit bonus on your first deposit and may include free spins on selected slot games. Bonus amounts and wagering requirements vary, so always read the terms and conditions on the ${name} promotions page before claiming any offer. Existing players can also take advantage of reload bonuses, cashback deals, and loyalty rewards.`,
-      sort_order: 3,
+      q: `What welcome bonus does ${n} offer to new players?`,
+      a: `${n} offers new players a competitive welcome package, which typically includes a match deposit bonus on your first deposit and may include free spins on selected slot games. Bonus amounts and wagering requirements vary, so always read the terms and conditions on the ${n} promotions page before claiming any offer. Existing players can also take advantage of reload bonuses, cashback deals, and loyalty rewards.`,
     },
     {
-      question: `What payment methods are accepted at ${name}?`,
-      answer: `${name} supports a wide range of deposit and withdrawal methods including major credit/debit cards (Visa, Mastercard), e-wallets (Skrill, Neteller, PayPal where available), bank transfers, prepaid cards, and various cryptocurrencies such as Bitcoin, Ethereum, and Litecoin. Minimum deposit and withdrawal amounts, processing times, and fees vary by method. Check the ${name} cashier section for the full list of available options in your region.`,
-      sort_order: 4,
+      q: `What payment methods are accepted at ${n}?`,
+      a: `${n} supports a wide range of deposit and withdrawal methods including major credit/debit cards (Visa, Mastercard), e-wallets (Skrill, Neteller, PayPal where available), bank transfers, prepaid cards, and various cryptocurrencies such as Bitcoin, Ethereum, and Litecoin. Minimum deposit and withdrawal amounts, processing times, and fees vary by method. Check the ${n} cashier section for the full list of available options in your region.`,
     },
     {
-      question: `How long do withdrawals take at ${name}?`,
-      answer: `Withdrawal times at ${name} depend on the payment method chosen. E-wallets are typically the fastest, with processing completed within 24 to 48 hours. Credit/debit card withdrawals may take 3 to 5 business days, while bank transfers can take up to 7 business days. Cryptocurrency withdrawals are often processed within a few hours. Note that ${name} may require identity verification (KYC) before processing your first withdrawal, which could add additional time.`,
-      sort_order: 5,
+      q: `How long do withdrawals take at ${n}?`,
+      a: `Withdrawal times at ${n} depend on the payment method chosen. E-wallets are typically the fastest, with processing completed within 24 to 48 hours. Credit/debit card withdrawals may take 3 to 5 business days, while bank transfers can take up to 7 business days. Cryptocurrency withdrawals are often processed within a few hours. Note that ${n} may require identity verification (KYC) before processing your first withdrawal, which could add additional time.`,
     },
     {
-      question: `What games are available at ${name}?`,
-      answer: `${name} offers an extensive library of casino games powered by top software providers. You can enjoy hundreds of online slots (classic, video, and progressive jackpot slots), table games (blackjack, roulette, baccarat, poker), and a live casino section featuring real dealers streamed in HD. Many casinos also offer specialty games such as bingo, keno, and scratch cards. Use the game filter or search bar on the ${name} platform to find your preferred titles quickly.`,
-      sort_order: 6,
+      q: `What games are available at ${n}?`,
+      a: `${n} offers an extensive library of casino games powered by top software providers. You can enjoy hundreds of online slots (classic, video, and progressive jackpot slots), table games (blackjack, roulette, baccarat, poker), and a live casino section featuring real dealers streamed in HD. Many casinos also offer specialty games such as bingo, keno, and scratch cards. Use the game filter or search bar on the ${n} platform to find your preferred titles quickly.`,
     },
   ];
 }
 
-// ---------------------------------------------------------------------------
-// Main
-// ---------------------------------------------------------------------------
-async function main() {
-  console.log(`🎰 FAQ Seeder — targeting all ${CASINOS.length} casinos\n`);
+const lines = [];
+lines.push(`-- Casino FAQ Seeder — All 132 Casinos (Exact Slugs)`);
+lines.push(`-- Generated: ${new Date().toISOString()}`);
+lines.push(`-- Idempotent: skips casinos already having >= 6 FAQs`);
+lines.push(`-- Run: psql -U postgres -d casinolab -f prisma/seed-casino-faqs.sql`);
+lines.push(``);
+lines.push(`DO $$`);
+lines.push(`DECLARE`);
+lines.push(`  casino_uuid UUID;`);
+lines.push(`  existing_count INTEGER;`);
+lines.push(`BEGIN`);
 
-  let seeded = 0;
-  let skipped = 0;
-  let notFound = 0;
+for (const casino of casinos) {
+  const { name, slug } = casino;
+  const faqs = getFaqs(name);
 
-  for (const { name, slug } of CASINOS) {
-    // Look up by exact slug
-    const casino = await prisma.casino.findUnique({
-      where: { slug },
-      select: { id: true, name: true },
-    });
+  lines.push(``);
+  lines.push(`  -- ${name} (${slug})`);
+  lines.push(`  SELECT id INTO casino_uuid FROM "Casino" WHERE slug = '${escape(slug)}' LIMIT 1;`);
+  lines.push(`  IF casino_uuid IS NOT NULL THEN`);
+  lines.push(`    SELECT COUNT(*) INTO existing_count FROM "CasinoFaq" WHERE casino_id = casino_uuid;`);
+  lines.push(`    IF existing_count < 6 THEN`);
 
-    if (!casino) {
-      console.log(`  ⚠️  Not found: ${name} (slug: ${slug})`);
-      notFound++;
-      continue;
-    }
+  faqs.forEach((faq, i) => {
+    lines.push(`      IF NOT EXISTS (SELECT 1 FROM "CasinoFaq" WHERE casino_id = casino_uuid AND question = '${faq.q}') THEN`);
+    lines.push(`        INSERT INTO "CasinoFaq" (id, casino_id, question, answer, sort_order)`);
+    lines.push(`        VALUES (gen_random_uuid(), casino_uuid, '${faq.q}', '${faq.a}', ${i + 1});`);
+    lines.push(`      END IF;`);
+  });
 
-    const existingCount = await prisma.casinoFaq.count({ where: { casino_id: casino.id } });
-
-    if (existingCount >= 6) {
-      console.log(`  ⏭  ${name} — already has ${existingCount} FAQs, skipping.`);
-      skipped++;
-      continue;
-    }
-
-    const faqs = getFaqsForCasino(name);
-
-    for (const faq of faqs) {
-      const exists = await prisma.casinoFaq.findFirst({
-        where: { casino_id: casino.id, question: faq.question },
-      });
-      if (!exists) {
-        await prisma.casinoFaq.create({
-          data: {
-            casino_id: casino.id,
-            question: faq.question,
-            answer: faq.answer,
-            sort_order: faq.sort_order,
-          },
-        });
-      }
-    }
-
-    console.log(`  ✅ ${name}`);
-    seeded++;
-  }
-
-  console.log(`\n===================================`);
-  console.log(`✅ Seeded:    ${seeded} casinos (6 FAQs each)`);
-  console.log(`⏭  Skipped:   ${skipped} casinos (already had FAQs)`);
-  console.log(`⚠️  Not found: ${notFound} casinos`);
-  console.log(`===================================`);
+  lines.push(`    END IF;`);
+  lines.push(`  END IF;`);
 }
 
-main()
-  .catch((error) => {
-    console.error('❌ Seeder failed:', error);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+lines.push(``);
+lines.push(`  RAISE NOTICE 'FAQ seeding complete for all 132 casinos.';`);
+lines.push(`END $$;`);
+
+console.log(lines.join('\n'));
