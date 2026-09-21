@@ -327,11 +327,10 @@ app.get('/api/casinos', async (req, res) => {
 // Public API endpoint for news
 app.get('/api/news', async (req, res) => {
     try {
-        const { limit } = req.query;
         const news = await prisma_1.prisma.news.findMany({
             where: { status: 'published' },
             orderBy: { published_at: 'desc' },
-            take: limit ? parseInt(String(limit), 10) : undefined,
+            take: 10,
             include: {
                 author: {
                     select: {
