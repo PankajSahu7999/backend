@@ -4,13 +4,19 @@ exports.deleteBonusSection = exports.updateBonusSection = exports.createBonusSec
 const prisma_1 = require("../prisma");
 const getBonusSections = async (req, res) => {
     try {
-        const { status, all } = req.query;
+        const { status, all, section_type } = req.query;
         const where = {};
         if (all !== 'true' && !status) {
             where.status = 'active';
         }
-        else if (status) {
+        else if (status && status !== 'all') {
             where.status = String(status);
+        }
+        if (section_type && section_type !== 'all') {
+            where.section_type = String(section_type);
+        }
+        else if (!section_type && all !== 'true') {
+            where.section_type = 'bonus';
         }
         const sections = await prisma_1.prisma.bonusSection.findMany({
             where,
@@ -110,7 +116,7 @@ const getBonusSectionById = async (req, res) => {
 exports.getBonusSectionById = getBonusSectionById;
 const createBonusSection = async (req, res) => {
     try {
-        const { title, slug: customSlug, badge_text, description, icon_name, sort_order, status, items, } = req.body;
+        const { title, slug: customSlug, badge_text, description, icon_name, sort_order, status, section_type, items, } = req.body;
         if (!title || !title.trim()) {
             res.status(400).json({ error: 'Section Title is required' });
             return;
@@ -143,6 +149,7 @@ const createBonusSection = async (req, res) => {
                 icon_name: icon_name && icon_name.trim() ? icon_name.trim() : 'Gift',
                 sort_order: safeSort,
                 status: status || 'active',
+                section_type: section_type && section_type.trim() ? section_type.trim() : 'bonus',
             },
         });
         // Create items if any
@@ -189,7 +196,7 @@ exports.createBonusSection = createBonusSection;
 const updateBonusSection = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, slug: customSlug, badge_text, description, icon_name, sort_order, status, items, } = req.body;
+        const { title, slug: customSlug, badge_text, description, icon_name, sort_order, status, section_type, items, } = req.body;
         const updateData = {};
         if (title !== undefined)
             updateData.title = title.trim();
@@ -204,6 +211,8 @@ const updateBonusSection = async (req, res) => {
             updateData.icon_name = icon_name ? icon_name.trim() : 'Gift';
         if (status !== undefined)
             updateData.status = status;
+        if (section_type !== undefined)
+            updateData.section_type = section_type ? section_type.trim() : 'bonus';
         if (sort_order !== undefined) {
             updateData.sort_order = !isNaN(parseInt(String(sort_order), 10)) ? parseInt(String(sort_order), 10) : 0;
         }

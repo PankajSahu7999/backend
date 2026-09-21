@@ -58,6 +58,7 @@ model Casino {
   status                  String?                   @default("active") @db.VarChar(20)
   featured                Boolean?                  @default(false)
   hot_casino              Boolean?                  @default(false)
+  card_badge              String?                   @db.VarChar(100)
   recommended_by_experts  Boolean?                  @default(false)
   certified_casino        Boolean?                  @default(false)
   mobile_friendly         Boolean?                  @default(false)
@@ -696,13 +697,15 @@ model BonusSection {
   description String?            @db.Text
   icon_name   String?            @default("Gift") @db.VarChar(100)
   sort_order  Int?               @default(0)
-  status      String?            @default("active") @db.VarChar(50)
-  created_at  DateTime?          @default(now()) @db.Timestamp(6)
-  updated_at  DateTime?          @updatedAt @db.Timestamp(6)
-  items       BonusSectionItem[]
+  status       String?            @default("active") @db.VarChar(50)
+  section_type String?            @default("bonus") @db.VarChar(50)
+  created_at   DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at   DateTime?          @updatedAt @db.Timestamp(6)
+  items        BonusSectionItem[]
 
   @@index([slug])
   @@index([status])
+  @@index([section_type])
 }
 
 model BonusSectionItem {

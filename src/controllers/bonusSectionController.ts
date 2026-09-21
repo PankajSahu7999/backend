@@ -3,13 +3,19 @@ import { prisma } from '../prisma';
 
 export const getBonusSections = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { status, all } = req.query;
+    const { status, all, section_type } = req.query;
 
     const where: any = {};
     if (all !== 'true' && !status) {
       where.status = 'active';
-    } else if (status) {
+    } else if (status && status !== 'all') {
       where.status = String(status);
+    }
+
+    if (section_type && section_type !== 'all') {
+      where.section_type = String(section_type);
+    } else if (!section_type && all !== 'true') {
+      where.section_type = 'bonus';
     }
 
     const sections = await (prisma as any).bonusSection.findMany({
@@ -122,6 +128,7 @@ export const createBonusSection = async (req: Request, res: Response): Promise<v
       icon_name,
       sort_order,
       status,
+      section_type,
       items,
     } = req.body;
 
@@ -163,6 +170,7 @@ export const createBonusSection = async (req: Request, res: Response): Promise<v
         icon_name: icon_name && icon_name.trim() ? icon_name.trim() : 'Gift',
         sort_order: safeSort,
         status: status || 'active',
+        section_type: section_type && section_type.trim() ? section_type.trim() : 'bonus',
       },
     });
 
@@ -219,6 +227,7 @@ export const updateBonusSection = async (req: Request, res: Response): Promise<v
       icon_name,
       sort_order,
       status,
+      section_type,
       items,
     } = req.body;
 
@@ -231,6 +240,7 @@ export const updateBonusSection = async (req: Request, res: Response): Promise<v
     if (description !== undefined) updateData.description = description ? description.trim() : null;
     if (icon_name !== undefined) updateData.icon_name = icon_name ? icon_name.trim() : 'Gift';
     if (status !== undefined) updateData.status = status;
+    if (section_type !== undefined) updateData.section_type = section_type ? section_type.trim() : 'bonus';
     if (sort_order !== undefined) {
       updateData.sort_order = !isNaN(parseInt(String(sort_order), 10)) ? parseInt(String(sort_order), 10) : 0;
     }

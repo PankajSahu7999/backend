@@ -10,16 +10,17 @@ const app = express();
 const port = process.env.PORT || 4000;
 
 // Build allowed origins dynamically from environment variables
-const allowedOrigins: string[] = [];
-
-// Add development localhost URLs only if in development mode
-if (process.env.NODE_ENV !== 'production') {
-  allowedOrigins.push('http://localhost:3000', 'http://localhost:3001');
-}
+const allowedOrigins: string[] = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:3001',
+  'https://casinoreviewsbook.com',
+  'https://www.casinoreviewsbook.com',
+];
 
 // Add production frontend URL(s) from env
 if (process.env.FRONTEND_URL) {
-  // Support multiple comma-separated URLs e.g. "https://casinoreviewsbook.com,https://www.casinoreviewsbook.com"
   process.env.FRONTEND_URL.split(',').map(url => url.trim()).forEach(url => {
     if (url && !allowedOrigins.includes(url)) allowedOrigins.push(url);
   });
@@ -31,15 +32,20 @@ if (process.env.ADDITIONAL_ORIGINS) {
     if (url && !allowedOrigins.includes(url)) allowedOrigins.push(url);
   });
 }
+
 console.log("NODE_ENV:", process.env.NODE_ENV);
-console.log("FRONTEND_URL:", process.env.FRONTEND_URL);
 console.log("Allowed Origins:", allowedOrigins);
+
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
+    // Always allow any localhost or loopback port
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return callback(null, true);
+    }
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS: origin '${origin}' not allowed`));
+    return callback(null, false);
   },
   credentials: true,
 }));
