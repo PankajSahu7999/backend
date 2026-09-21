@@ -10,6 +10,7 @@
     "seed:bonuses": "ts-node src/scripts/seedBonusSections.ts",
     "seed:sections": "ts-node src/scripts/seedAllSections.ts",
     "seed:badges": "ts-node src/scripts/seedCasinoBadges.ts",
+    "seed:news": "ts-node src/scripts/seedNews.ts",
     "seed:casinos": "ts-node src/scripts/seedCasinosFromMongo.ts",
     "seed:faqs": "ts-node prisma/seed-casino-faqs.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
