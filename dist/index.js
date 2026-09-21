@@ -347,6 +347,34 @@ app.get('/api/news', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch news' });
     }
 });
+// Public single news article by slug or ID
+app.get('/api/news/:idOrSlug', async (req, res) => {
+    try {
+        const identifier = String(req.params.idOrSlug);
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+        const news = await prisma_1.prisma.news.findFirst({
+            where: isUUID ? { id: identifier } : { slug: identifier },
+            include: {
+                author: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
+            },
+        });
+        if (!news) {
+            res.status(404).json({ error: 'News not found' });
+            return;
+        }
+        res.json(news);
+    }
+    catch (err) {
+        console.error("Error fetching single news:", err);
+        res.status(500).json({ error: 'Failed to fetch news' });
+    }
+});
 // Public API endpoint for blogs
 app.get('/api/blogs', async (req, res) => {
     try {
