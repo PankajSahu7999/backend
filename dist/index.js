@@ -89,8 +89,11 @@ const hasOffersConfigRoutes_1 = __importDefault(require("./routes/hasOffersConfi
 const guideRoutes_1 = __importDefault(require("./routes/guideRoutes"));
 const bonusSectionRoutes_1 = __importDefault(require("./routes/bonusSectionRoutes"));
 const bonusRoutes_1 = __importDefault(require("./routes/bonusRoutes"));
+const gameRoutes_1 = __importDefault(require("./routes/gameRoutes"));
 const settingsController_1 = require("./controllers/settingsController");
 const categoryController_1 = require("./controllers/categoryController");
+app.use('/api/admin/games', gameRoutes_1.default);
+app.use('/api/games', gameRoutes_1.default);
 app.use('/api/admin/guides', guideRoutes_1.default);
 app.use('/api/guides', guideRoutes_1.default);
 app.use('/api/admin/bonus-sections', bonusSectionRoutes_1.default);

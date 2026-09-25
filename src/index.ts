@@ -92,8 +92,12 @@ import hasOffersConfigRoutes from './routes/hasOffersConfigRoutes';
 import guideRoutes from './routes/guideRoutes';
 import bonusSectionRoutes from './routes/bonusSectionRoutes';
 import bonusRoutes from './routes/bonusRoutes';
+import gameRoutes from './routes/gameRoutes';
 import { getSettings } from './controllers/settingsController';
 import { getCategories, getCategoryBySlug, getCategoryById } from './controllers/categoryController';
+
+app.use('/api/admin/games', gameRoutes);
+app.use('/api/games', gameRoutes);
 
 app.use('/api/admin/guides', guideRoutes);
 app.use('/api/guides', guideRoutes);

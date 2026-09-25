@@ -734,4 +734,49 @@ model BonusSectionItem {
   @@index([casino_id])
 }
 
+model CasinoGame {
+  id                   String    @id @default(uuid()) @db.Uuid
+  title                String    @db.VarChar(255)
+  slug                 String    @unique @db.VarChar(255)
+  game_type            String?   @db.VarChar(100)
+  provider             String?   @db.VarChar(100)
+  category             String?   @db.VarChar(100)
+  thumbnail            String?
+  hero_banner          String?
+  demo_url             String?
+  affiliate_url        String?
+  rtp                  String?   @db.VarChar(50)
+  volatility           String?   @db.VarChar(50)
+  min_bet              Decimal?  @db.Decimal(10, 2)
+  max_bet              Decimal?  @db.Decimal(10, 2)
+  release_date         DateTime? @db.Date
+  autoplay             Boolean?  @default(true)
+  multiplier           Boolean?  @default(true)
+  in_game_interaction  Boolean?  @default(false)
+  player_customisation Boolean?  @default(true)
+  rebet                Boolean?  @default(true)
+  side_bet             Boolean?  @default(true)
+  undo                 Boolean?  @default(true)
+  game_history         Boolean?  @default(true)
+  bonus_features       Boolean?  @default(true)
+  rating               Decimal?  @default(4.8) @db.Decimal(2, 1)
+  overview             String?   @db.Text
+  rtp_details          String?   @db.Text
+  pros                 String[]  @default([])
+  cons                 String[]  @default([])
+  author_name          String?   @default("Bojan Jovanovic") @db.VarChar(100)
+  author_avatar        String?
+  is_recommended       Boolean?  @default(false)
+  is_sponsored         Boolean?  @default(false)
+  status               String?   @default("active") @db.VarChar(20)
+  sort_order           Int?      @default(0)
+  created_at           DateTime? @default(now()) @db.Timestamp(6)
+  updated_at           DateTime? @updatedAt @db.Timestamp(6)
+
+  @@index([slug])
+  @@index([category])
+  @@index([game_type])
+  @@index([provider])
+}
+
 
