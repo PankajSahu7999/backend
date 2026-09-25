@@ -80,7 +80,9 @@ export const getCasino = async (req: Request, res: Response) => {
       where: isUUID ? { id: identifier } : { slug: identifier },
       include: {
         languages: true,
-        bonuses: true,
+        bonuses: {
+          orderBy: { sort_order: 'asc' }
+        },
         features: true,
         pros: true,
         cons: true,
@@ -216,6 +218,7 @@ export const createCasino = async (req: Request, res: Response) => {
         live_casino: casinoData.live_casino === true || casinoData.live_casino === 'true',
         sports_betting: casinoData.sports_betting === true || casinoData.sports_betting === 'true',
         responsible_gaming: casinoData.responsible_gaming === true || casinoData.responsible_gaming === 'true',
+        gaming_tools: splitByCommaOrNewline(casinoData.gaming_tools),
         support_methods: splitByCommaOrNewline(casinoData.support_methods),
         meta_keywords: splitByCommaOrNewline(casinoData.meta_keywords),
         
@@ -229,6 +232,10 @@ export const createCasino = async (req: Request, res: Response) => {
             amount: truncateString(bonus.amount, 100),
             bonus_code: bonus.bonus_code ? truncateString(bonus.bonus_code, 100) : null,
             wagering_requirement: bonus.wagering_requirement ? truncateString(bonus.wagering_requirement, 100) : null,
+            minimum_deposit: bonus.minimum_deposit ? truncateString(bonus.minimum_deposit, 100) : null,
+            bonus_percentage: bonus.bonus_percentage ? truncateString(bonus.bonus_percentage, 100) : null,
+            affiliate_url: bonus.affiliate_url ? String(bonus.affiliate_url).trim() : null,
+            terms_url: bonus.terms_url ? String(bonus.terms_url).trim() : null,
             sort_order: bonus.sort_order ? parseInt(bonus.sort_order, 10) : 0
           }))
         } : undefined,
@@ -373,6 +380,7 @@ export const updateCasino = async (req: Request, res: Response) => {
           live_casino: casinoData.live_casino !== undefined ? (casinoData.live_casino === true || casinoData.live_casino === 'true') : undefined,
           sports_betting: casinoData.sports_betting !== undefined ? (casinoData.sports_betting === true || casinoData.sports_betting === 'true') : undefined,
           responsible_gaming: casinoData.responsible_gaming !== undefined ? (casinoData.responsible_gaming === true || casinoData.responsible_gaming === 'true') : undefined,
+          gaming_tools: casinoData.gaming_tools !== undefined ? splitByCommaOrNewline(casinoData.gaming_tools) : undefined,
           support_methods: casinoData.support_methods !== undefined ? splitByCommaOrNewline(casinoData.support_methods) : undefined,
           meta_keywords: casinoData.meta_keywords !== undefined ? splitByCommaOrNewline(casinoData.meta_keywords) : undefined,
 
@@ -386,6 +394,10 @@ export const updateCasino = async (req: Request, res: Response) => {
               amount: truncateString(bonus.amount, 100),
               bonus_code: bonus.bonus_code ? truncateString(bonus.bonus_code, 100) : null,
               wagering_requirement: bonus.wagering_requirement ? truncateString(bonus.wagering_requirement, 100) : null,
+              minimum_deposit: bonus.minimum_deposit ? truncateString(bonus.minimum_deposit, 100) : null,
+              bonus_percentage: bonus.bonus_percentage ? truncateString(bonus.bonus_percentage, 100) : null,
+              affiliate_url: bonus.affiliate_url ? String(bonus.affiliate_url).trim() : null,
+              terms_url: bonus.terms_url ? String(bonus.terms_url).trim() : null,
               sort_order: bonus.sort_order ? parseInt(bonus.sort_order, 10) : 0
             }))
           } : undefined,
@@ -847,7 +859,9 @@ export const getCasinoBySlug = async (req: Request, res: Response) => {
       where: { slug },
       include: {
         languages: true,
-        bonuses: true,
+        bonuses: {
+          orderBy: { sort_order: 'asc' }
+        },
         features: true,
         pros: true,
         cons: true,
