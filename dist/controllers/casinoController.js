@@ -75,6 +75,7 @@ const getCasinos = async (req, res) => {
                 { created_at: 'desc' }
             ],
             include: {
+                bonuses: true,
                 tags: {
                     include: {
                         tag: true

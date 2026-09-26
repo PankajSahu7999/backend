@@ -42,6 +42,7 @@ export const getCasinos = async (req: Request, res: Response) => {
         { created_at: 'desc' }
       ],
       include: {
+        bonuses: true,
         tags: {
           include: {
             tag: true

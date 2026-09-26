@@ -420,13 +420,16 @@ Although you're playing Real Dealer Studios' game at online casinos there's a re
   }
 
   console.log(`✅ Successfully seeded ${gamesData.length} casino games!`);
+  return { count: gamesData.length };
 }
 
-seedGames()
-  .catch((e) => {
-    console.error('Error seeding games:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+if (require.main === module) {
+  seedGames()
+    .catch((e) => {
+      console.error('Error seeding games:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}

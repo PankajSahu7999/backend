@@ -237,3 +237,21 @@ export const getRecommendedGames = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to fetch recommended games' });
   }
 };
+
+export const seedGamesEndpoint = async (req: Request, res: Response) => {
+  try {
+    const { seedGames } = await import('../scripts/seedGames');
+    const result = await seedGames();
+    res.json({
+      success: true,
+      message: `Successfully seeded ${result.count} casino games!`,
+      data: result,
+    });
+  } catch (error: any) {
+    console.error('Error in seedGamesEndpoint:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to seed casino games',
+    });
+  }
+};

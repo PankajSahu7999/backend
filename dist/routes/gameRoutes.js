@@ -3,6 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const gameController_1 = require("../controllers/gameController");
 const router = (0, express_1.Router)();
+// Seeder endpoint (for running seeder from admin UI or server curl)
+router.post('/seed', gameController_1.seedGamesEndpoint);
+router.get('/seed', gameController_1.seedGamesEndpoint);
 // Recommended / grouped games for the hub page
 router.get('/recommended', gameController_1.getRecommendedGames);
 // Slug-based query (for marketing detail page)

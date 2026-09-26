@@ -7,9 +7,14 @@ import {
   updateGame,
   deleteGame,
   getRecommendedGames,
+  seedGamesEndpoint,
 } from '../controllers/gameController';
 
 const router = Router();
+
+// Seeder endpoint (for running seeder from admin UI or server curl)
+router.post('/seed', seedGamesEndpoint);
+router.get('/seed', seedGamesEndpoint);
 
 // Recommended / grouped games for the hub page
 router.get('/recommended', getRecommendedGames);
