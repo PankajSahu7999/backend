@@ -3,16 +3,66 @@ import { prisma } from '../prisma';
 
 export const getFaqs = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { category, status, limit } = req.query;
+    const { category, status, limit, fallback = 'true' } = req.query;
 
-    const where: any = {};
-    if (status !== undefined) {
-      where.status = status === 'true' || status === '1';
+    const statusFilter = status !== undefined ? (status === 'true' || status === '1') : undefined;
+
+    // 1. If a specific category is requested
+    if (category && typeof category === 'string' && category.trim() !== '' && category.toLowerCase() !== 'all') {
+      const categorySlug = category.trim();
+
+      const matchedFaqs = await prisma.faq.findMany({
+        where: {
+          category: {
+            equals: categorySlug,
+            mode: 'insensitive',
+          },
+          ...(statusFilter !== undefined ? { status: statusFilter } : {}),
+        },
+        orderBy: { sort_order: 'asc' },
+        take: limit ? Number(limit) : undefined,
+      });
+
+      // If FAQs exist for this category, return them
+      if (matchedFaqs.length > 0) {
+        res.json(matchedFaqs);
+        return;
+      }
+
+      // If no FAQs found for this category and fallback is enabled, fallback to 'home' FAQs
+      if (fallback === 'true' && categorySlug.toLowerCase() !== 'home') {
+        const homeFallbackFaqs = await prisma.faq.findMany({
+          where: {
+            category: {
+              in: ['home', 'Home', 'General', 'general'],
+            },
+            ...(statusFilter !== undefined ? { status: statusFilter } : {}),
+          },
+          orderBy: { sort_order: 'asc' },
+          take: limit ? Number(limit) : undefined,
+        });
+
+        res.json(homeFallbackFaqs);
+        return;
+      }
+
+      res.json([]);
+      return;
     }
-    if (category) {
+
+    // 2. If no category is requested:
+    // For admin / management endpoints, return all FAQs.
+    // For public endpoint (status=true and no category), default to 'home' FAQs or all sorted.
+    const where: any = {};
+    if (statusFilter !== undefined) {
+      where.status = statusFilter;
+    }
+
+    // If it's a public request asking without category, prioritize home FAQs
+    const isPublicHomeRequest = req.path === '/api/faqs' || req.originalUrl.startsWith('/api/faqs');
+    if (isPublicHomeRequest && !category) {
       where.category = {
-        equals: String(category),
-        mode: 'insensitive',
+        in: ['home', 'Home', 'General', 'general'],
       };
     }
 
@@ -21,9 +71,31 @@ export const getFaqs = async (req: Request, res: Response): Promise<void> => {
       orderBy: [{ category: 'asc' }, { sort_order: 'asc' }],
       take: limit ? Number(limit) : undefined,
     });
+
     res.json(faqs);
   } catch (error) {
     console.error('Error fetching FAQs:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getFaqCategories = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rawCategories = await prisma.faq.findMany({
+      select: { category: true },
+      distinct: ['category'],
+      where: {
+        category: { not: null },
+      },
+    });
+
+    const categories = rawCategories
+      .map((c) => c.category)
+      .filter((c): c is string => Boolean(c && c.trim() !== ''));
+
+    res.json(categories);
+  } catch (error) {
+    console.error('Error fetching FAQ categories:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -58,9 +130,9 @@ export const createFaq = async (req: Request, res: Response): Promise<void> => {
       data: {
         question,
         answer,
-        category,
+        category: category ? String(category).trim() : 'home',
         sort_order: Number(sort_order) || 0,
-        status: status !== undefined ? status : true,
+        status: status !== undefined ? Boolean(status) : true,
       },
     });
     res.status(201).json(faq);
@@ -80,9 +152,9 @@ export const updateFaq = async (req: Request, res: Response): Promise<void> => {
       data: {
         question,
         answer,
-        category,
+        category: category !== undefined ? String(category).trim() : undefined,
         sort_order: sort_order !== undefined ? Number(sort_order) : undefined,
-        status,
+        status: status !== undefined ? Boolean(status) : undefined,
       },
     });
     res.json(faq);
