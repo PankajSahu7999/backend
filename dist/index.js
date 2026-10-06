@@ -92,6 +92,7 @@ const bonusRoutes_1 = __importDefault(require("./routes/bonusRoutes"));
 const gameRoutes_1 = __importDefault(require("./routes/gameRoutes"));
 const settingsController_1 = require("./controllers/settingsController");
 const categoryController_1 = require("./controllers/categoryController");
+const faqController_1 = require("./controllers/faqController");
 app.use('/api/admin/games', gameRoutes_1.default);
 app.use('/api/games', gameRoutes_1.default);
 app.use('/api/admin/guides', guideRoutes_1.default);
@@ -371,21 +372,8 @@ app.get('/api/blogs', async (req, res) => {
         res.status(500).json({ error: 'Failed to fetch blogs' });
     }
 });
-// Public API endpoint for FAQs
-app.get('/api/faqs', async (req, res) => {
-    try {
-        const faqs = await prisma_1.prisma.faq.findMany({
-            where: { status: true },
-            orderBy: { sort_order: 'asc' },
-            take: 20
-        });
-        res.json(faqs);
-    }
-    catch (err) {
-        console.error("Error fetching FAQs:", err);
-        res.status(500).json({ error: 'Failed to fetch FAQs' });
-    }
-});
+// Public API endpoint for FAQs (supports ?category=... with automatic fallback to home FAQs)
+app.get('/api/faqs', faqController_1.getFaqs);
 app.listen(port, () => {
     console.log(`Backend API listening on port ${port}`);
 });

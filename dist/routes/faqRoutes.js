@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const faqController_1 = require("../controllers/faqController");
 const router = (0, express_1.Router)();
+router.get('/meta/categories', faqController_1.getFaqCategories);
 router.get('/', faqController_1.getFaqs);
 router.get('/:id', faqController_1.getFaqById);
 router.post('/', faqController_1.createFaq);

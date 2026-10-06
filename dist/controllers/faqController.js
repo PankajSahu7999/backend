@@ -1,18 +1,60 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteFaq = exports.updateFaq = exports.createFaq = exports.getFaqById = exports.getFaqs = void 0;
+exports.deleteFaq = exports.updateFaq = exports.createFaq = exports.getFaqById = exports.getFaqCategories = exports.getFaqs = void 0;
 const prisma_1 = require("../prisma");
 const getFaqs = async (req, res) => {
     try {
-        const { category, status, limit } = req.query;
-        const where = {};
-        if (status !== undefined) {
-            where.status = status === 'true' || status === '1';
+        const { category, status, limit, fallback = 'true' } = req.query;
+        const statusFilter = status !== undefined ? (status === 'true' || status === '1') : undefined;
+        // 1. If a specific category is requested
+        if (category && typeof category === 'string' && category.trim() !== '' && category.toLowerCase() !== 'all') {
+            const categorySlug = category.trim();
+            const matchedFaqs = await prisma_1.prisma.faq.findMany({
+                where: {
+                    category: {
+                        equals: categorySlug,
+                        mode: 'insensitive',
+                    },
+                    ...(statusFilter !== undefined ? { status: statusFilter } : {}),
+                },
+                orderBy: { sort_order: 'asc' },
+                take: limit ? Number(limit) : undefined,
+            });
+            // If FAQs exist for this category, return them
+            if (matchedFaqs.length > 0) {
+                res.json(matchedFaqs);
+                return;
+            }
+            // If no FAQs found for this category and fallback is enabled, fallback to 'home' FAQs
+            if (fallback === 'true' && categorySlug.toLowerCase() !== 'home') {
+                const homeFallbackFaqs = await prisma_1.prisma.faq.findMany({
+                    where: {
+                        category: {
+                            in: ['home', 'Home', 'General', 'general'],
+                        },
+                        ...(statusFilter !== undefined ? { status: statusFilter } : {}),
+                    },
+                    orderBy: { sort_order: 'asc' },
+                    take: limit ? Number(limit) : undefined,
+                });
+                res.json(homeFallbackFaqs);
+                return;
+            }
+            res.json([]);
+            return;
         }
-        if (category) {
+        // 2. If no category is requested:
+        // For admin / management endpoints, return all FAQs.
+        // For public endpoint (status=true and no category), default to 'home' FAQs or all sorted.
+        const where = {};
+        if (statusFilter !== undefined) {
+            where.status = statusFilter;
+        }
+        // If it's a public request asking without category, prioritize home FAQs
+        const isPublicHomeRequest = req.path === '/api/faqs' || req.originalUrl.startsWith('/api/faqs');
+        if (isPublicHomeRequest && !category) {
             where.category = {
-                equals: String(category),
-                mode: 'insensitive',
+                in: ['home', 'Home', 'General', 'general'],
             };
         }
         const faqs = await prisma_1.prisma.faq.findMany({
@@ -28,6 +70,26 @@ const getFaqs = async (req, res) => {
     }
 };
 exports.getFaqs = getFaqs;
+const getFaqCategories = async (req, res) => {
+    try {
+        const rawCategories = await prisma_1.prisma.faq.findMany({
+            select: { category: true },
+            distinct: ['category'],
+            where: {
+                category: { not: null },
+            },
+        });
+        const categories = rawCategories
+            .map((c) => c.category)
+            .filter((c) => Boolean(c && c.trim() !== ''));
+        res.json(categories);
+    }
+    catch (error) {
+        console.error('Error fetching FAQ categories:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+exports.getFaqCategories = getFaqCategories;
 const getFaqById = async (req, res) => {
     try {
         const id = String(req.params.id);
@@ -57,9 +119,9 @@ const createFaq = async (req, res) => {
             data: {
                 question,
                 answer,
-                category,
+                category: category ? String(category).trim() : 'home',
                 sort_order: Number(sort_order) || 0,
-                status: status !== undefined ? status : true,
+                status: status !== undefined ? Boolean(status) : true,
             },
         });
         res.status(201).json(faq);
@@ -79,9 +141,9 @@ const updateFaq = async (req, res) => {
             data: {
                 question,
                 answer,
-                category,
+                category: category !== undefined ? String(category).trim() : undefined,
                 sort_order: sort_order !== undefined ? Number(sort_order) : undefined,
-                status,
+                status: status !== undefined ? Boolean(status) : undefined,
             },
         });
         res.json(faq);
