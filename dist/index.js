@@ -104,6 +104,7 @@ app.use('/api/admin/casinos', casinoRoutes_1.default);
 app.use('/api/admin/users', userRoutes_1.default);
 app.use('/api/admin/blogs', blogRoutes_1.default);
 app.use('/api/admin/news', newsRoutes_1.default);
+// Public news endpoints (returns all 50 news articles without truncation)
 app.use('/api/news', newsRoutes_1.default);
 app.use('/api/admin/reviews', reviewRoutes_1.default);
 app.use('/api/admin/faqs', faqRoutes_1.default);
