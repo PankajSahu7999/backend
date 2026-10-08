@@ -18,7 +18,14 @@ const uniqueNewsSlug = async (base) => {
 };
 const getNews = async (req, res) => {
     try {
+        const { status, limit } = req.query;
+        const where = {};
+        if (status) {
+            where.status = String(status);
+        }
+        const take = limit ? parseInt(String(limit), 10) : undefined;
         const news = await prisma_1.prisma.news.findMany({
+            where: Object.keys(where).length > 0 ? where : undefined,
             include: {
                 author: {
                     select: {
@@ -29,6 +36,7 @@ const getNews = async (req, res) => {
                 },
             },
             orderBy: { sort_order: 'asc' },
+            ...(take ? { take } : {}),
         });
         res.json(news);
     }

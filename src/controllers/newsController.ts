@@ -19,7 +19,15 @@ const uniqueNewsSlug = async (base: string): Promise<string> => {
 
 export const getNews = async (req: Request, res: Response): Promise<void> => {
   try {
+    const { status, limit } = req.query;
+    const where: Prisma.NewsWhereInput = {};
+    if (status) {
+      where.status = String(status);
+    }
+    const take = limit ? parseInt(String(limit), 10) : undefined;
+
     const news = await prisma.news.findMany({
+      where: Object.keys(where).length > 0 ? where : undefined,
       include: {
         author: {
           select: {
@@ -30,6 +38,7 @@ export const getNews = async (req: Request, res: Response): Promise<void> => {
         },
       },
       orderBy: { sort_order: 'asc' },
+      ...(take ? { take } : {}),
     });
     res.json(news);
   } catch (error) {

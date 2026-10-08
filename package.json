@@ -17,6 +17,8 @@
     "seed:casinos": "ts-node src/scripts/seedCasinosFromMongo.ts",
     "seed:faqs": "ts-node prisma/seed-casino-faqs.ts",
     "seed:category-faqs": "ts-node prisma/seed-category-faqs.ts",
+    "seed:news": "ts-node src/scripts/seedNews.ts",
+    "seed:news:prod": "node dist/scripts/seedNews.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
    "prisma": {

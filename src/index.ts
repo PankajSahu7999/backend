@@ -111,6 +111,7 @@ app.use('/api/admin/casinos', casinoRoutes);
 app.use('/api/admin/users', userRoutes);
 app.use('/api/admin/blogs', blogRoutes);
 app.use('/api/admin/news', newsRoutes);
+app.use('/api/news', newsRoutes);
 app.use('/api/admin/reviews', reviewRoutes);
 app.use('/api/admin/faqs', faqRoutes);
 app.use('/api/admin/banners', bannerRoutes);
@@ -366,27 +367,6 @@ app.get('/api/casinos', async (req, res) => {
   }
 });
 
-// Public API endpoint for news
-app.get('/api/news', async (req, res) => {
-  try {
-    const news = await prisma.news.findMany({
-      where: { status: 'published' },
-      orderBy: { published_at: 'desc' },
-      take: 10,
-      include: {
-        author: {
-          select: {
-            name: true
-          }
-        }
-      }
-    });
-    res.json(news);
-  } catch (err) {
-    console.error("Error fetching news:", err);
-    res.status(500).json({ error: 'Failed to fetch news' });
-  }
-});
 
 // Public API endpoint for blogs
 app.get('/api/blogs', async (req, res) => {
