@@ -51,6 +51,15 @@ app.use((0, cors_1.default)({
     },
     credentials: true,
 }));
+// Standard Security Headers
+app.use((_req, res, next) => {
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    next();
+});
 app.use(express_1.default.json());
 // Serve static files from uploads directory
 app.use('/uploads', express_1.default.static(path_1.default.join(process.cwd(), 'uploads')));
