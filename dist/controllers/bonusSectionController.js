@@ -18,11 +18,19 @@ const getBonusSections = async (req, res) => {
         else if (!section_type && all !== 'true') {
             where.section_type = 'bonus';
         }
+        const isPublic = all !== 'true';
         const sections = await prisma_1.prisma.bonusSection.findMany({
             where,
             orderBy: { sort_order: 'asc' },
             include: {
                 items: {
+                    where: isPublic
+                        ? {
+                            casino: {
+                                status: 'active',
+                            },
+                        }
+                        : undefined,
                     orderBy: { sort_order: 'asc' },
                     include: {
                         casino: {
@@ -60,6 +68,11 @@ const getBonusSectionBySlug = async (req, res) => {
             where: { slug },
             include: {
                 items: {
+                    where: {
+                        casino: {
+                            status: 'active',
+                        },
+                    },
                     orderBy: { sort_order: 'asc' },
                     include: {
                         casino: {

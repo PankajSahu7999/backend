@@ -24,9 +24,15 @@ export const getCasinos = async (req: Request, res: Response) => {
   try {
     const { search, limit, status } = req.query;
     const where: any = {};
+    const isAdmin = req.baseUrl.includes('/admin');
 
-    if (status && status !== 'all') {
-      where.status = String(status);
+    if (status) {
+      if (status !== 'all') {
+        where.status = String(status);
+      }
+    } else if (!isAdmin) {
+      // Public requests must strictly return active casinos
+      where.status = 'active';
     }
 
     if (search && typeof search === 'string' && search.trim() !== '') {

@@ -57,8 +57,18 @@ const truncateString = (val, maxLength) => {
 };
 const getCasinos = async (req, res) => {
     try {
-        const { search, limit } = req.query;
+        const { search, limit, status } = req.query;
         const where = {};
+        const isAdmin = req.baseUrl.includes('/admin');
+        if (status) {
+            if (status !== 'all') {
+                where.status = String(status);
+            }
+        }
+        else if (!isAdmin) {
+            // Public requests must strictly return active casinos
+            where.status = 'active';
+        }
         if (search && typeof search === 'string' && search.trim() !== '') {
             const q = search.trim();
             where.OR = [
