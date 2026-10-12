@@ -21,7 +21,7 @@
     "seed:news:prod": "node dist/scripts/enrichNewsContent.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-   "prisma": {
+  "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
   "keywords": [],
@@ -38,6 +38,7 @@
     "nodemailer": "^9.0.1",
     "pg": "^8.22.0",
     "sharp": "^0.35.2",
+    "ssh2": "^1.17.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

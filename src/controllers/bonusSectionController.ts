@@ -18,11 +18,20 @@ export const getBonusSections = async (req: Request, res: Response): Promise<voi
       where.section_type = 'bonus';
     }
 
+    const isPublic = all !== 'true';
+
     const sections = await (prisma as any).bonusSection.findMany({
       where,
       orderBy: { sort_order: 'asc' },
       include: {
         items: {
+          where: isPublic
+            ? {
+                casino: {
+                  status: 'active',
+                },
+              }
+            : undefined,
           orderBy: { sort_order: 'asc' },
           include: {
             casino: {
@@ -61,6 +70,11 @@ export const getBonusSectionBySlug = async (req: Request, res: Response): Promis
       where: { slug },
       include: {
         items: {
+          where: {
+            casino: {
+              status: 'active',
+            },
+          },
           orderBy: { sort_order: 'asc' },
           include: {
             casino: {

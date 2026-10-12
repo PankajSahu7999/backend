@@ -22,6 +22,11 @@ export const getBonuses = async (req: Request, res: Response): Promise<void> => 
       ];
     }
 
+    // Only show bonuses for active casinos
+    where.casino = {
+      status: 'active',
+    };
+
     const bonuses = await prisma.casinoBonus.findMany({
       where,
       include: {

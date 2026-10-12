@@ -22,8 +22,12 @@ const truncateString = (val: any, maxLength: number): string => {
 
 export const getCasinos = async (req: Request, res: Response) => {
   try {
-    const { search, limit } = req.query;
+    const { search, limit, status } = req.query;
     const where: any = {};
+
+    if (status && status !== 'all') {
+      where.status = String(status);
+    }
 
     if (search && typeof search === 'string' && search.trim() !== '') {
       const q = search.trim();
