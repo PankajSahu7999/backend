@@ -52,13 +52,17 @@ class HasOffersTrackingService {
         // Generate affiliate URL with tracking parameters
         let affiliateUrl = click.casino.affiliate_url || click.casino.default_affiliate_url;
         if (config && affiliateUrl) {
-            // Append HasOffers tracking parameters
-            const separator = affiliateUrl.includes('?') ? '&' : '?';
-            affiliateUrl = `${affiliateUrl}${separator}aff_sub=${click_id}`;
-            // If we have the network's offer URL format, use it
             if (config.network_domain && config.offer_id) {
-                affiliateUrl = `https://${config.network_domain}/aff_c?offer_id=${config.offer_id}&aff_sub=${click_id}`;
+                affiliateUrl = `https://${config.network_domain}/aff_c?offer_id=${config.offer_id}&affclickid=${click_id}&aff_sub=${click_id}`;
             }
+            else {
+                const separator = affiliateUrl.includes('?') ? '&' : '?';
+                affiliateUrl = `${affiliateUrl}${separator}affclickid=${click_id}&aff_sub=${click_id}`;
+            }
+        }
+        else if (affiliateUrl) {
+            const separator = affiliateUrl.includes('?') ? '&' : '?';
+            affiliateUrl = `${affiliateUrl}${separator}affclickid=${click_id}`;
         }
         return affiliateUrl;
     }
@@ -111,12 +115,13 @@ class HasOffersTrackingService {
      * Record a conversion from postback
      */
     static async recordConversion(params) {
-        const { transaction_id, offer_id, affiliate_id, aff_sub, aff_sub2, aff_sub3, aff_sub4, aff_sub5, conversion_type = 'lead', payout, sale_amount, status = 'pending', ip_address, user_agent, country, referring_url } = params;
-        // Find the click by aff_sub (which contains our click_id)
+        const { transaction_id, offer_id, affiliate_id, aff_sub, aff_sub2, aff_sub3, aff_sub4, aff_sub5, affclickid, conversion_type = 'lead', payout, sale_amount, status = 'pending', ip_address, user_agent, country, referring_url } = params;
+        const effectiveClickId = affclickid || aff_sub;
+        // Find the click by effectiveClickId (affclickid or aff_sub)
         let click = null;
-        if (aff_sub) {
+        if (effectiveClickId) {
             click = await prisma_1.prisma.hasOffersClick.findUnique({
-                where: { click_id: aff_sub },
+                where: { click_id: effectiveClickId },
                 include: { casino: true }
             });
         }

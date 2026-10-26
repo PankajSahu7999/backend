@@ -12,18 +12,21 @@ const handlePostback = async (req, res) => {
         const { transaction_id, offer_id, affiliate_id, aff_sub, aff_sub2, aff_sub3, aff_sub4, aff_sub5, payout, sale_amount, amount, // alternative parameter name for sale_amount
         revenue, // alternative parameter name for payout
         ip, user_agent, country, referring_url, status = 'approved', conversion_type = 'sale' } = params;
+        // Support Moolzy & standard sub parameters (affclickid, click_id, clickid)
+        const effectiveClickId = params.affclickid || params.click_id || params.clickid || aff_sub;
         // Validate required fields
-        if (!transaction_id) {
-            return res.status(400).json({ error: 'Missing required field: transaction_id' });
+        if (!transaction_id && !effectiveClickId) {
+            return res.status(400).json({ error: 'Missing required field: transaction_id or affclickid/aff_sub' });
         }
+        const effectiveTransactionId = transaction_id || effectiveClickId;
         // Parse numeric values
         const payoutValue = payout || revenue ? parseFloat((payout || revenue)) : null;
         const saleAmountValue = sale_amount || amount ? parseFloat((sale_amount || amount)) : null;
-        // Find the click by aff_sub (which contains our click_id)
+        // Find the click by effectiveClickId (affclickid or aff_sub)
         let click = null;
-        if (aff_sub) {
+        if (effectiveClickId) {
             click = await prisma_1.prisma.hasOffersClick.findUnique({
-                where: { click_id: aff_sub },
+                where: { click_id: effectiveClickId },
                 include: { casino: true }
             });
         }
@@ -61,17 +64,17 @@ const handlePostback = async (req, res) => {
             }
         }
         if (!casino) {
-            console.error(`Postback failed: No casino found for offer_id ${offer_id} and transaction_id ${transaction_id}`);
+            console.error(`Postback failed: No casino found for offer_id ${offer_id} and transaction_id ${effectiveTransactionId}`);
             return res.status(404).json({ error: 'Casino not found for this conversion' });
         }
         // Check if conversion already exists
         const existingConversion = await prisma_1.prisma.hasOffersConversion.findUnique({
-            where: { transaction_id: transaction_id }
+            where: { transaction_id: effectiveTransactionId }
         });
         if (existingConversion) {
             // Update existing conversion
             const updatedConversion = await prisma_1.prisma.hasOffersConversion.update({
-                where: { transaction_id: transaction_id },
+                where: { transaction_id: effectiveTransactionId },
                 data: {
                     status: status,
                     payout: payoutValue,
@@ -86,10 +89,10 @@ const handlePostback = async (req, res) => {
             data: {
                 config_id: config?.id,
                 casino_id: casino.id,
-                transaction_id: transaction_id,
-                offer_id: offer_id,
+                transaction_id: effectiveTransactionId,
+                offer_id: offer_id || config?.offer_id || 'unknown',
                 affiliate_id: affiliate_id || undefined,
-                aff_sub: aff_sub || undefined,
+                aff_sub: effectiveClickId || undefined,
                 aff_sub2: aff_sub2 || undefined,
                 aff_sub3: aff_sub3 || undefined,
                 aff_sub4: aff_sub4 || undefined,
@@ -110,7 +113,7 @@ const handlePostback = async (req, res) => {
             await prisma_1.prisma.hasOffersClick.update({
                 where: { id: click.id },
                 data: {
-                    transaction_id: transaction_id,
+                    transaction_id: effectiveTransactionId,
                     conversion_received_at: new Date()
                 }
             });
@@ -160,15 +163,17 @@ const generateTrackingClick = async (req, res) => {
         // Generate affiliate URL with tracking parameters
         let affiliateUrl = click.casino.default_affiliate_url || click.casino.website_url;
         if (config) {
-            // If we have the network's offer URL format, use it
             if (config.network_domain && config.offer_id) {
-                affiliateUrl = `https://${config.network_domain}/aff_c?offer_id=${config.offer_id}&aff_sub=${click_id}`;
+                affiliateUrl = `https://${config.network_domain}/aff_c?offer_id=${config.offer_id}&affclickid=${click_id}&aff_sub=${click_id}`;
             }
             else if (affiliateUrl) {
-                // Append HasOffers tracking parameters
                 const separator = affiliateUrl.includes('?') ? '&' : '?';
-                affiliateUrl = `${affiliateUrl}${separator}aff_sub=${click_id}`;
+                affiliateUrl = `${affiliateUrl}${separator}affclickid=${click_id}&aff_sub=${click_id}`;
             }
+        }
+        else if (affiliateUrl) {
+            const separator = affiliateUrl.includes('?') ? '&' : '?';
+            affiliateUrl = `${affiliateUrl}${separator}affclickid=${click_id}`;
         }
         res.status(201).json({
             click,

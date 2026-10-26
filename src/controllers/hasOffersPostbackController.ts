@@ -29,20 +29,25 @@ export const handlePostback = async (req: Request, res: Response) => {
       conversion_type = 'sale'
     } = params;
 
+    // Support Moolzy & standard sub parameters (affclickid, click_id, clickid)
+    const effectiveClickId = params.affclickid || params.click_id || params.clickid || aff_sub;
+
     // Validate required fields
-    if (!transaction_id) {
-      return res.status(400).json({ error: 'Missing required field: transaction_id' });
+    if (!transaction_id && !effectiveClickId) {
+      return res.status(400).json({ error: 'Missing required field: transaction_id or affclickid/aff_sub' });
     }
+
+    const effectiveTransactionId = transaction_id || effectiveClickId;
 
     // Parse numeric values
     const payoutValue = payout || revenue ? parseFloat((payout || revenue) as string) : null;
     const saleAmountValue = sale_amount || amount ? parseFloat((sale_amount || amount) as string) : null;
 
-    // Find the click by aff_sub (which contains our click_id)
+    // Find the click by effectiveClickId (affclickid or aff_sub)
     let click = null;
-    if (aff_sub) {
+    if (effectiveClickId) {
       click = await prisma.hasOffersClick.findUnique({
-        where: { click_id: aff_sub as string },
+        where: { click_id: effectiveClickId as string },
         include: { casino: true }
       });
     }
@@ -83,19 +88,19 @@ export const handlePostback = async (req: Request, res: Response) => {
     }
 
     if (!casino) {
-      console.error(`Postback failed: No casino found for offer_id ${offer_id} and transaction_id ${transaction_id}`);
+      console.error(`Postback failed: No casino found for offer_id ${offer_id} and transaction_id ${effectiveTransactionId}`);
       return res.status(404).json({ error: 'Casino not found for this conversion' });
     }
 
     // Check if conversion already exists
     const existingConversion = await prisma.hasOffersConversion.findUnique({
-      where: { transaction_id: transaction_id as string }
+      where: { transaction_id: effectiveTransactionId as string }
     });
 
     if (existingConversion) {
       // Update existing conversion
       const updatedConversion = await prisma.hasOffersConversion.update({
-        where: { transaction_id: transaction_id as string },
+        where: { transaction_id: effectiveTransactionId as string },
         data: {
           status: status as string,
           payout: payoutValue,
@@ -111,10 +116,10 @@ export const handlePostback = async (req: Request, res: Response) => {
       data: {
         config_id: config?.id,
         casino_id: casino.id,
-        transaction_id: transaction_id as string,
-        offer_id: offer_id as string,
+        transaction_id: effectiveTransactionId as string,
+        offer_id: offer_id as string || config?.offer_id || 'unknown',
         affiliate_id: affiliate_id as string || undefined,
-        aff_sub: aff_sub as string || undefined,
+        aff_sub: (effectiveClickId as string) || undefined,
         aff_sub2: aff_sub2 as string || undefined,
         aff_sub3: aff_sub3 as string || undefined,
         aff_sub4: aff_sub4 as string || undefined,
@@ -136,7 +141,7 @@ export const handlePostback = async (req: Request, res: Response) => {
       await prisma.hasOffersClick.update({
         where: { id: click.id },
         data: {
-          transaction_id: transaction_id as string,
+          transaction_id: effectiveTransactionId as string,
           conversion_received_at: new Date()
         }
       });
@@ -192,14 +197,15 @@ export const generateTrackingClick = async (req: Request, res: Response) => {
     let affiliateUrl = (click.casino as any).default_affiliate_url || (click.casino as any).website_url;
     
     if (config) {
-      // If we have the network's offer URL format, use it
       if (config.network_domain && config.offer_id) {
-        affiliateUrl = `https://${config.network_domain}/aff_c?offer_id=${config.offer_id}&aff_sub=${click_id}`;
+        affiliateUrl = `https://${config.network_domain}/aff_c?offer_id=${config.offer_id}&affclickid=${click_id}&aff_sub=${click_id}`;
       } else if (affiliateUrl) {
-        // Append HasOffers tracking parameters
         const separator = affiliateUrl.includes('?') ? '&' : '?';
-        affiliateUrl = `${affiliateUrl}${separator}aff_sub=${click_id}`;
+        affiliateUrl = `${affiliateUrl}${separator}affclickid=${click_id}&aff_sub=${click_id}`;
       }
+    } else if (affiliateUrl) {
+      const separator = affiliateUrl.includes('?') ? '&' : '?';
+      affiliateUrl = `${affiliateUrl}${separator}affclickid=${click_id}`;
     }
 
     res.status(201).json({
