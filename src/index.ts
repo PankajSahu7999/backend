@@ -100,6 +100,7 @@ import contactTicketRoutes from './routes/contactTicketRoutes';
 import { createTicket, getUserTickets } from './controllers/contactTicketController';
 import hasOffersPostbackRoutes from './routes/hasOffersPostbackRoutes';
 import hasOffersConfigRoutes from './routes/hasOffersConfigRoutes';
+import authRoutes from './routes/authRoutes';
 import guideRoutes from './routes/guideRoutes';
 import bonusSectionRoutes from './routes/bonusSectionRoutes';
 import bonusRoutes from './routes/bonusRoutes';
@@ -108,6 +109,7 @@ import { getSettings } from './controllers/settingsController';
 import { getCategories, getCategoryBySlug, getCategoryById } from './controllers/categoryController';
 import { getFaqs } from './controllers/faqController';
 
+app.use('/api/auth', authRoutes);
 app.use('/api/admin/games', gameRoutes);
 app.use('/api/games', gameRoutes);
 
